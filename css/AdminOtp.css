@@ -1,0 +1,428 @@
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(160deg, #ffd6e0 0%, #ff4d94 55%, #e6006e 100%);
+  overflow: hidden;
+}
+
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+body::before {
+  width: 420px;
+  height: 420px;
+  background: #ff80b5;
+  top: -100px;
+  left: -100px;
+}
+body::after {
+  width: 350px;
+  height: 350px;
+  background: #c2005a;
+  bottom: -80px;
+  right: -80px;
+}
+
+/* ── Card ── */
+.card {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  padding: 48px 44px 52px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(180, 0, 80, 0.18), 0 4px 16px rgba(0, 0, 0, 0.06);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Brand Header ── */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 40px;
+}
+
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffd6e0 0%, #ffaac8 50%, #ff80b5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(255, 80, 150, 0.3);
+  overflow: hidden;
+  position: relative;
+}
+
+.brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #2a0a14;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+
+.brand-sub {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: #7a3050;
+  letter-spacing: 0.4px;
+}
+
+/* ── Form Fields ── */
+.field {
+  margin-bottom: 20px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5a2035;
+  margin-bottom: 8px;
+  letter-spacing: 0.2px;
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  color: #c06080;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.input-wrap input {
+  width: 100%;
+  padding: 13px 42px 13px 44px;
+  border: 1.5px solid #f0c0d0;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #3a1020;
+  background: rgba(255, 255, 255, 0.85);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-wrap input::placeholder {
+  color: #c8a0b0;
+}
+
+.input-wrap input:focus {
+  border-color: #ff4d94;
+  box-shadow: 0 0 0 3px rgba(255, 77, 148, 0.15);
+  background: #fff;
+}
+
+/* ── Password Toggle Button ── */
+.toggle-pw {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c06080;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.2s;
+}
+.toggle-pw:hover {
+  color: #ff4d94;
+}
+
+/* ── Remember / Forgot ── */
+.extras {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  margin-top: 4px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #e0a0b8;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.remember input[type="checkbox"]:checked {
+  background: #ff4d94;
+  border-color: #ff4d94;
+}
+
+.remember input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.remember span {
+  font-size: 13px;
+  color: #7a4055;
+}
+
+.forgot {
+  font-size: 13px;
+  color: #e0206e;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.forgot:hover {
+  color: #b5005a;
+  text-decoration: underline;
+}
+
+/* ── Sign In Button ── */
+.btn-signin {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #ff6aaa 0%, #ff1a72 60%, #cc0055 100%);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(220, 0, 100, 0.38);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-signin::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+}
+
+.btn-signin:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(220, 0, 100, 0.45);
+}
+
+.btn-signin:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(220, 0, 100, 0.3);
+}
+
+/* ── Toast Notification ── */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a0a10;
+  color: #ffd6e8;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 13.5px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 100;
+  white-space: nowrap;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Responsive ── */
+@media (max-width: 520px) {
+  .card {
+    margin: 16px;
+    padding: 36px 28px 44px;
+  }
+  .brand-name { font-size: 20px; }
+  .brand-sub  { font-size: 16px; }
+}
+
+/* ════════════════════════════════
+   VERIFICATION PAGE
+   ════════════════════════════════ */
+
+/* Title */
+.verify-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #2a0a14;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Subtitle */
+.verify-sub {
+  font-size: 13px;
+  color: #7a4055;
+  line-height: 1.6;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.verify-sub span {
+  font-weight: 500;
+  color: #e0206e;
+}
+
+/* ── OTP Boxes ── */
+.otp-wrap {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.otp-box {
+  width: 48px;
+  height: 52px;
+  border: 1.5px solid #f0c0d0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #3a1020;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  caret-color: #ff4d94;
+}
+
+.otp-box::placeholder {
+  color: #e0b8c8;
+}
+
+.otp-box:focus {
+  border-color: #ff4d94;
+  box-shadow: 0 0 0 3px rgba(255, 77, 148, 0.15);
+  background: #fff;
+}
+
+.otp-box.filled {
+  border-color: #ff4d94;
+  background: #fff5f9;
+}
+
+/* ── Resend Row ── */
+.resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.resend-text {
+  font-size: 12.5px;
+  color: #9a6070;
+}
+
+.resend-link {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #e0206e;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.resend-link:hover {
+  color: #b5005a;
+  text-decoration: underline;
+}
+
+.resend-link.cooldown {
+  color: #b8909a;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ── Back Row ── */
+.back-row {
+  text-align: center;
+  margin-top: 18px;
+}
+
+.back-link {
+  font-size: 13px;
+  color: #9a5065;
+  text-decoration: none;
+  font-weight: 400;
+  transition: color 0.2s;
+}
+.back-link:hover {
+  color: #e0206e;
+}

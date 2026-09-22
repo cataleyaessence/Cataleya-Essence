@@ -1,0 +1,101 @@
+/* Shared admin navigation, based on the Admin-Staff layout. */
+:root {
+    --sidebar-w: 180px;
+    --navbar-h: 56px;
+}
+
+.sidebar {
+    width: var(--sidebar-w);
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    padding: 20px 0 0;
+    position: fixed;
+    top: var(--navbar-h);
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 50;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 10px;
+}
+
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--text-mid);
+    text-decoration: none;
+    border-radius: 10px;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.sidebar .nav-link i {
+    width: 18px;
+    font-size: 14px;
+    text-align: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: color 0.15s;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    color: var(--pink-accent);
+    background: var(--pink-light);
+}
+
+.sidebar .nav-link:hover i,
+.sidebar .nav-link.active i {
+    color: var(--pink-accent);
+}
+
+.sidebar-footer {
+    padding: 12px 10px 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+}
+
+.sidebar .nav-link.logout {
+    color: var(--text-muted);
+}
+
+.sidebar .nav-link.logout:hover {
+    color: #d32f2f;
+    background: #fce8e8;
+}
+
+.sidebar .nav-link.logout i,
+.sidebar .nav-link.logout:hover i {
+    color: inherit;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --sidebar-w: 0px;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .main {
+        margin-left: 0;
+    }
+}

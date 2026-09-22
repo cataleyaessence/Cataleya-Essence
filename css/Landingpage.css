@@ -1,0 +1,10 @@
+/* Landingpage.css
+   Fallback stylesheet for pages that reference Landingpage.css.
+   This file imports the existing home.css rules so the shared landing page
+   styling is available without causing a 404 error.
+*/
+@import url("home.css");
+
+body {
+    background-color: #ffffff;
+}

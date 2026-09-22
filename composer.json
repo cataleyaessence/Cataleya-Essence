@@ -1,0 +1,18 @@
+{
+    "name": "cataleya/beauty-essence",
+    "description": "Cataleya Essence of Beauty - Spa and Booking System",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "Cataleya\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}
