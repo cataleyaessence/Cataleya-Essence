@@ -503,7 +503,7 @@ $selected_date_slots = $stmt->fetchAll();
     </div>
   </footer>
 
-  <script src="Js/script.js"></script>
+  <script src="JS/script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
         const calendarMonth = document.getElementById('calendarMonth');

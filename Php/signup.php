@@ -178,6 +178,6 @@
     </div>
 
     <!-- external JavaScript -->
-    <script src="../js/signup.js"></script>
+    <script src="../JS/signup.js"></script>
 </body>
 </html>

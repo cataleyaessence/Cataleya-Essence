@@ -223,7 +223,7 @@ if (count($name_parts) >= 2) {
     </footer>
 
     <!-- ========== SCRIPTS ========== -->
-    <script src="../js/about.js"></script>
+    <script src="../JS/about.js"></script>
 
 </body>
 

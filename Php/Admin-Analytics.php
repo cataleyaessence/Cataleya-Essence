@@ -443,6 +443,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         };
     </script>
-    <script src="../js/Admin-Booking Analytics.js" defer></script>
+    <script src="../JS/Admin-Booking Analytics.js" defer></script>
 </body>
 </html>

@@ -232,7 +232,7 @@ if (count($name_parts) >= 2) {
     </div>
 
     <!-- ===== JAVASCRIPT ===== -->
-    <script src="../js/bookings.js"></script>
+    <script src="../JS/bookings.js"></script>
 
 </body>
 </html>

@@ -196,6 +196,6 @@ if (count($name_parts) >= 2) {
     </footer>
 
     <!-- external JavaScript -->
-    <script src="../js/Calendar service.js"></script>
+    <script src="../JS/Calendar service.js"></script>
 </body>
 </html>

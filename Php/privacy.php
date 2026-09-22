@@ -200,6 +200,6 @@
         <p>&copy; 2026 Cataleya Essence of Beauty. All rights reserved.</p>
     </footer>
 
-    <script src="../js/Landingpage.js"></script>
+    <script src="../JS/Landingpage.js"></script>
 </body>
 </html>

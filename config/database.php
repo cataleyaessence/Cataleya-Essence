@@ -1,9 +1,9 @@
 <?php
 // config/database.php
-$host = 'localhost';
-$dbname = 'cataleya_db';
-$username = 'root';
-$password = '';
+$host = 'sql109.infinityfree.com';
+$dbname = 'if0_42984699_Cataleya';
+$username = 'if0_42984699';
+$password = 'Admincataleya';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);

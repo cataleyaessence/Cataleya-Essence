@@ -410,7 +410,7 @@ $remainder = array_slice($hall_of_fame, 3);
   </footer>
 
   <!-- External JavaScript -->
-  <script src="../js/Rewards.js"></script>
+  <script src="../JS/Rewards.js"></script>
 
 </body>
 </html>

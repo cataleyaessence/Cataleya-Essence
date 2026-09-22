@@ -513,7 +513,7 @@ $selected_date_slots = $stmt->fetchAll();
       </div>
   </footer>
 
-  <script src="../js/home.js"></script>
+  <script src="../JS/home.js"></script>
   <script>
     // Real-time availability date selection
     document.addEventListener('DOMContentLoaded', function() {

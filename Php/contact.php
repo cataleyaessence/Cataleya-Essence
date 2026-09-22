@@ -214,6 +214,6 @@
         </div>
     </footer>
 
-    <script src="../js/contact.js"></script>
+    <script src="../JS/contact.js"></script>
 </body>
 </html>

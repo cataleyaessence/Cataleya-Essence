@@ -363,7 +363,7 @@ if (count($name_parts) >= 2) {
     </footer>
 
     <!-- ========== SCRIPTS ========== -->
-    <script src="../js/Confirmpayment.js"></script>
+    <script src="../JS/Confirmpayment.js"></script>
 
 </body>
 </html>

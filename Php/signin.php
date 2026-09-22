@@ -223,7 +223,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <!-- external JavaScript -->
-    <script src="../js/signin.js"></script>
+    <script src="../JS/signin.js"></script>
 </body>
 
 </html>

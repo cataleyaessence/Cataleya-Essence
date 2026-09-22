@@ -216,7 +216,7 @@ $recent_bookings = $stmt->fetchAll();
         </div>
     </main>
 
-    <script src="../js/profile.js"></script>
+    <script src="../JS/profile.js"></script>
 
 </body>
 </html>
