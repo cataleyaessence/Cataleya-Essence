@@ -360,7 +360,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ─── STEP 3: Confirm Booking (Show Success Popup) ────────────
     if (confirmBookingBtn) {
+        let bookingSubmissionInProgress = false;
+
         confirmBookingBtn.addEventListener('click', function() {
+            if (bookingSubmissionInProgress) {
+                return;
+            }
+
+            bookingSubmissionInProgress = true;
             const fullName = document.getElementById('fullName').value.trim();
             const email = document.getElementById('email').value.trim();
             const phone = document.getElementById('phone').value.trim();
@@ -399,12 +406,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     // Show success popup
                     showSuccessPopup(data.booking);
-                    
-                    // Reset button
-                    confirmBookingBtn.disabled = false;
-                    confirmBookingBtn.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i> Confirm Booking';
                 } else {
                     alert('Error creating booking: ' + (data.error || 'Unknown error'));
+                    bookingSubmissionInProgress = false;
                     confirmBookingBtn.disabled = false;
                     confirmBookingBtn.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i> Confirm Booking';
                 }
@@ -412,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 alert('Error creating booking. Please try again.');
+                bookingSubmissionInProgress = false;
                 confirmBookingBtn.disabled = false;
                 confirmBookingBtn.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i> Confirm Booking';
             });

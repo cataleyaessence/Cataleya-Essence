@@ -129,6 +129,13 @@
     margin-top: 16px;
 }
 
+/* Admin-Serenity_Sched.css makes these cards display:flex. Keep the filter
+   state stronger so hidden, non-matching bookings cannot remain visible. */
+.previous-booking-item[hidden],
+.previous-booking-item.is-filtered-out {
+    display: none !important;
+}
+
 .status-summary-card .summary-label {
     font-size: 13px;
     color: var(--text-muted);
@@ -143,6 +150,7 @@
 }
 
 .status-summary-card.confirmed .summary-value { color: #4caf50; }
+.status-summary-card.rescheduled .summary-value { color: #7c3aed; }
 .status-summary-card.completed .summary-value { color: #2196f3; }
 .status-summary-card.cancelled .summary-value { color: #f44336; }
 
@@ -159,6 +167,7 @@
 }
 
 .booking-status.confirmed { background: #e6ffed; color: #166534; border: 1px solid #4ade80; }
+.booking-status.rescheduled { background: #f3e8ff; color: #6b21a8; border: 1px solid #c084fc; }
 .booking-status.completed { background: #e7f0ff; color: #1d4ed8; border: 1px solid #93c5fd; }
 .booking-status.cancelled { background: #ffe5e5; color: #b91c1c; border: 1px solid #f87171; }
 

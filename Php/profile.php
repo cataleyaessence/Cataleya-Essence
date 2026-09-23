@@ -36,7 +36,7 @@ $stmt->execute([$user_id]);
 $total_bookings = $stmt->fetch()['total'];
 
 // Upcoming appointments are confirmed after the required downpayment.
-$stmt = $pdo->prepare("SELECT COUNT(*) as upcoming FROM bookings WHERE user_id = ? AND status = 'confirmed' AND booking_date >= CURDATE()");
+$stmt = $pdo->prepare("SELECT COUNT(*) as upcoming FROM bookings WHERE user_id = ? AND status IN ('confirmed', 'rescheduled') AND booking_date >= CURDATE()");
 $stmt->execute([$user_id]);
 $upcoming_appointments = $stmt->fetch()['upcoming'];
 

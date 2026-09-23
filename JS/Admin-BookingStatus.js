@@ -20,11 +20,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         bookingItems.forEach(function (item) {
             var itemStatus = item.getAttribute('data-status');
-            if (status === 'all' || itemStatus === status) {
-                item.hidden = false;
+            var shouldShow = status === 'all' || itemStatus === status;
+
+            item.hidden = !shouldShow;
+            item.classList.toggle('is-filtered-out', !shouldShow);
+
+            if (shouldShow) {
                 visibleCount += 1;
-            } else {
-                item.hidden = true;
             }
         });
 
@@ -67,8 +69,5 @@ document.addEventListener('DOMContentLoaded', function () {
     summaryCards.forEach(function (card) {
         card.classList.remove('active');
     });
-    if (summaryCards[0]) {
-        summaryCards[0].classList.add('active');
-    }
     applyStatusFilter(defaultStatus);
 });

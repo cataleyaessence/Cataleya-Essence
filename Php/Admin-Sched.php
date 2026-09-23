@@ -1,11 +1,15 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/admin_activity.php';
+require_once __DIR__ . '/../config/rewards.php';
 
 if (empty($_SESSION['admin_logged_in']) || empty($_SESSION['admin_id'])) {
     header('Location: signin.php');
     exit;
 }
+
+$adminName = trim((string) ($_SESSION['full_name'] ?? 'Admin'));
+$adminInitial = strtoupper(substr($adminName, 0, 1)) ?: 'A';
 
 // Get current date or date from query parameter
 $currentDate = date('Y-m-d');
@@ -30,6 +34,7 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$currentDate]);
 $bookings = $stmt->fetchAll();
+$appointmentCount = count($bookings);
 
 // Previous booking pagination
 $previousBookingsLimit = 6;
@@ -79,9 +84,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $newStatus = 'confirmed';
     }
 
-    $stmt = $pdo->prepare("UPDATE bookings SET status = ? WHERE id = ?");
-    $stmt->execute([$newStatus, $bookingId]);
-    if ($stmt->rowCount() > 0) {
+    $wasUpdated = false;
+    try {
+        $pdo->beginTransaction();
+
+        if ($newStatus === 'completed') {
+            $stmt = $pdo->prepare("UPDATE bookings SET status = 'completed' WHERE id = ? AND status IN ('confirmed', 'rescheduled')");
+            $stmt->execute([$bookingId]);
+            $wasUpdated = $stmt->rowCount() > 0;
+            if ($wasUpdated) {
+                awardCompletedBookingRewards($pdo, (int) $bookingId);
+            }
+        } elseif ($newStatus === 'cancelled') {
+            $bookingStmt = $pdo->prepare("SELECT user_id FROM bookings WHERE id = ? AND status IN ('confirmed', 'rescheduled') FOR UPDATE");
+            $bookingStmt->execute([$bookingId]);
+            $booking = $bookingStmt->fetch();
+            if ($booking) {
+                removeBookingRewardPoints($pdo, (int) $bookingId, (int) $booking['user_id']);
+                $stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status IN ('confirmed', 'rescheduled')");
+                $stmt->execute([$bookingId]);
+                $wasUpdated = $stmt->rowCount() > 0;
+            }
+        } else {
+            $stmt = $pdo->prepare("UPDATE bookings SET status = 'confirmed' WHERE id = ? AND status IN ('confirmed', 'rescheduled')");
+            $stmt->execute([$bookingId]);
+            $wasUpdated = $stmt->rowCount() > 0;
+        }
+
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('Admin schedule status update error: ' . $exception->getMessage());
+    }
+
+    if ($wasUpdated) {
         logAdminActivity($pdo, (int) $_SESSION['admin_id'], 'booking_status_updated', 'booking', (int) $bookingId, 'Changed booking status to ' . $newStatus);
     }
 
@@ -165,10 +203,10 @@ if ($isAjax) {
         </div>
         <div class="navbar-user">
             <div class="user-info">
-                <span class="user-name">Admin</span>
+                <span class="user-name"><?php echo htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8'); ?></span>
                 <span class="user-role">Manager</span>
             </div>
-            <div class="user-avatar">A</div>
+            <div class="user-avatar"><?php echo htmlspecialchars($adminInitial, ENT_QUOTES, 'UTF-8'); ?></div>
         </div>
     </header>
 
@@ -199,12 +237,19 @@ if ($isAjax) {
             <!-- Page Header -->
             <div class="page-header">
                 <div class="page-title-group">
+                    <p class="page-eyebrow"><i class="fas fa-calendar-days"></i> Appointment planner</p>
                     <h1 class="page-title">Schedule Overview</h1>
-                    <p class="page-sub">Manage your daily appointments at a glance</p>
+                    <p class="page-sub">Review each day’s appointments, availability, and booking history.</p>
                 </div>
                 <div class="legend">
                     <span class="legend-item">
                         <span class="legend-dot confirmed"></span> Confirmed
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot rescheduled"></span> Rescheduled
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot completed"></span> Completed
                     </span>
                     <span class="legend-item">
                         <span class="legend-dot cancelled"></span> Cancelled
@@ -214,6 +259,14 @@ if ($isAjax) {
 
             <!-- Calendar Card -->
             <div class="calendar-card">
+                <div class="calendar-card-intro">
+                    <div>
+                        <p class="calendar-card-kicker">Daily appointment timeline</p>
+                        <h2>Schedule board</h2>
+                        <p>Select a date to view every booked time slot.</p>
+                    </div>
+                    <div class="appointment-count" aria-live="polite"><strong id="appointmentCount"><?php echo $appointmentCount; ?></strong><span>appointment<?php echo $appointmentCount === 1 ? '' : 's'; ?></span></div>
+                </div>
 
                 <!-- Month Navigation -->
                 <div class="cal-month-nav">
@@ -243,6 +296,7 @@ if ($isAjax) {
                 </div>
 
                 <!-- Time Grid -->
+                <div class="timeline-labels" aria-hidden="true"><span>Time</span><span>Customer appointment</span></div>
                 <div class="time-grid" id="timeGrid">
                     <!-- Rows injected by JS -->
                 </div>

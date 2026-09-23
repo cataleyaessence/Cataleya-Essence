@@ -99,6 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$adminDisplayName = trim((string) ($admin['full_name'] ?? 'Admin'));
+$adminInitial = strtoupper(substr($adminDisplayName, 0, 1)) ?: 'A';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -127,10 +130,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <div class="navbar-user">
             <div class="user-info">
-                <span class="user-name">Admin</span>
+                <span class="user-name"><?=htmlspecialchars($adminDisplayName, ENT_QUOTES, 'UTF-8')?></span>
                 <span class="user-role">Manager</span>
             </div>
-            <div class="user-avatar">A</div>
+            <div class="user-avatar"><?=htmlspecialchars($adminInitial, ENT_QUOTES, 'UTF-8')?></div>
         </div>
     </header>
 
@@ -158,18 +161,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <main class="main">
 
             <!-- Page Header -->
-            <div class="page-header">
+            <div class="page-header settings-page-header">
                 <div>
+                    <p class="page-eyebrow"><i class="fas fa-sliders"></i> Account workspace</p>
                     <h1 class="page-title">
                         <i class="fas fa-cog settings-icon"></i> Settings
                     </h1>
-                    <p class="page-sub">Manage your account and system preferences</p>
+                    <p class="page-sub">Keep your administrator profile, email address, and password up to date.</p>
                 </div>
             </div>
             <?php if ($errorMessage): ?>
-                <div class="settings-alert settings-alert-error"><?=htmlspecialchars($errorMessage)?></div>
+                <div class="settings-alert settings-alert-error" role="alert"><i class="fas fa-circle-exclamation"></i><?=htmlspecialchars($errorMessage)?></div>
             <?php elseif ($successMessage): ?>
-                <div class="settings-alert settings-alert-success"><?=htmlspecialchars($successMessage)?></div>
+                <div class="settings-alert settings-alert-success" role="status"><i class="fas fa-circle-check"></i><?=htmlspecialchars($successMessage)?></div>
             <?php endif; ?>
 
             <!-- ── SETTINGS GRID (2 columns, 2 rows – all cards same size) ── -->
@@ -281,6 +285,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
             </div>
+        </main>
+    </div>
     <script src="../JS/Admin-Settings.js" defer></script>
 </body>
 </html>

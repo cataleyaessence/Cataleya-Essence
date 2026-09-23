@@ -18,34 +18,23 @@ if (!DateTime::createFromFormat('Y-m-d', $date)) {
 }
 
 try {
-    // Get time slots for the selected date
+    // Always return every active time slot. A left join preserves available
+    // slots even when another slot on the same date already has a record.
     $stmt = $pdo->prepare("
-        SELECT d.slot_id, d.status, d.max_bookings, d.current_bookings, t.display_time, t.slot_time
-        FROM daily_slot_availability d
-        JOIN time_slots t ON d.slot_id = t.id
-        WHERE d.slot_date = ? AND t.is_active = 1
+        SELECT t.id AS slot_id,
+               COALESCE(d.status, 'available') AS status,
+               COALESCE(d.max_bookings, 1) AS max_bookings,
+               COALESCE(d.current_bookings, 0) AS current_bookings,
+               t.display_time,
+               t.slot_time
+        FROM time_slots t
+        LEFT JOIN daily_slot_availability d
+            ON d.slot_id = t.id AND d.slot_date = ?
+        WHERE t.is_active = 1
         ORDER BY t.sort_order
     ");
     $stmt->execute([$date]);
     $date_slots = $stmt->fetchAll();
-
-    // If no slots found for this date, get all active time slots as available
-    if (empty($date_slots)) {
-        $stmt = $pdo->prepare("SELECT id, slot_time, display_time FROM time_slots WHERE is_active = 1 ORDER BY sort_order");
-        $stmt->execute();
-        $all_slots = $stmt->fetchAll();
-
-        $date_slots = array_map(function($slot) {
-            return [
-                'slot_id' => $slot['id'],
-                'status' => 'available',
-                'max_bookings' => 1,
-                'current_bookings' => 0,
-                'display_time' => $slot['display_time'],
-                'slot_time' => $slot['slot_time']
-            ];
-        }, $all_slots);
-    }
 
     // Check if user is logged in and fetch their bookings for this date
     $user_booked_slots = [];

@@ -12,26 +12,40 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+if (empty($_SESSION['booking_csrf_token'])) {
+    $_SESSION['booking_csrf_token'] = bin2hex(random_bytes(32));
+}
+$bookingCsrfToken = $_SESSION['booking_csrf_token'];
+
 // Fetch all bookings for the user (we'll do client-side filtering)
 $sql = "
-    SELECT b.id, b.booking_date, b.booking_time, b.status, b.created_at, b.total_amount,
+    SELECT b.id, b.service_id, b.booking_date, b.booking_time, b.status, b.created_at, b.total_amount,
            s.name as service_name, s.image_url as service_image, s.price,
            st.full_name as stylist_name
     FROM bookings b
     JOIN services s ON b.service_id = s.id
     LEFT JOIN staff st ON b.staff_id = st.id
     WHERE b.user_id = ?
+      AND b.status IN ('confirmed', 'completed', 'cancelled', 'rescheduled')
     ORDER BY b.booking_date DESC, b.booking_time DESC
 ";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$user_id]);
 $bookings = $stmt->fetchAll();
 
+$servicesStmt = $pdo->query(
+    "SELECT id, name, price
+     FROM services
+     WHERE is_active = 1
+     ORDER BY name"
+);
+$availableServices = $servicesStmt->fetchAll();
+
 // Count bookings by status for the badge counts
 $status_counts = [
     'all' => count($bookings),
-    'pending' => 0,
     'confirmed' => 0,
+    'rescheduled' => 0,
     'completed' => 0,
     'cancelled' => 0
 ];
@@ -147,11 +161,11 @@ if (count($name_parts) >= 2) {
                     <button class="filter-tab active" data-status="all">
                         All <span class="count-badge"><?php echo $status_counts['all']; ?></span>
                     </button>
-                    <button class="filter-tab" data-status="pending">
-                        <i class="fas fa-clock"></i> Pending <span class="count-badge"><?php echo $status_counts['pending']; ?></span>
-                    </button>
                     <button class="filter-tab" data-status="confirmed">
                         <i class="fas fa-check-circle"></i> Confirmed <span class="count-badge"><?php echo $status_counts['confirmed']; ?></span>
+                    </button>
+                    <button class="filter-tab" data-status="rescheduled">
+                        <i class="fas fa-calendar-pen"></i> Rescheduled <span class="count-badge"><?php echo $status_counts['rescheduled']; ?></span>
                     </button>
                     <button class="filter-tab" data-status="completed">
                         <i class="fas fa-check-double"></i> Completed <span class="count-badge"><?php echo $status_counts['completed']; ?></span>
@@ -195,9 +209,14 @@ if (count($name_parts) >= 2) {
                                         <i class="fas <?php echo getStatusIcon($booking['status']); ?>"></i>
                                         <?php echo ucfirst($booking['status']); ?>
                                     </span>
-                                    <?php if ($booking['status'] === 'pending'): ?>
-                                        <button class="btn-cancel-booking" data-booking-id="<?php echo $booking['id']; ?>">
-                                            <i class="fas fa-times"></i> Cancel
+                                    <?php if ($booking['status'] === 'confirmed'): ?>
+                                        <button type="button" class="btn-reschedule-booking" data-booking-id="<?php echo (int) $booking['id']; ?>" data-booking-date="<?php echo htmlspecialchars($booking['booking_date']); ?>" data-booking-time="<?php echo htmlspecialchars($booking['booking_time']); ?>" data-service-id="<?php echo (int) $booking['service_id']; ?>" data-service-price="<?php echo htmlspecialchars(number_format((float) $booking['price'], 2, '.', '')); ?>">
+                                            <i class="fas fa-calendar-pen"></i> Reschedule
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if (in_array($booking['status'], ['confirmed', 'rescheduled'], true)): ?>
+                                        <button type="button" class="btn-cancel-booking" data-booking-id="<?php echo (int) $booking['id']; ?>">
+                                            <i class="fas fa-ban"></i> Cancel
                                         </button>
                                     <?php endif; ?>
                                 </div>
@@ -217,6 +236,7 @@ if (count($name_parts) >= 2) {
                 <button class="modal-close" id="bookingModalClose">&times;</button>
                 
                 <div class="modal-header">
+                    <p class="modal-kicker"><i class="fas fa-calendar-heart"></i> Appointment overview</p>
                     <h2>Booking Details</h2>
                 </div>
                 
@@ -231,7 +251,73 @@ if (count($name_parts) >= 2) {
         </div>
     </div>
 
+    <!-- ===== RESCHEDULE BOOKING MODAL ===== -->
+    <div class="modal-overlay" id="rescheduleModal" aria-hidden="true">
+        <div class="modal-container">
+            <div class="modal-card reschedule-modal-card" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
+                <button type="button" class="modal-close" id="rescheduleModalClose" aria-label="Close reschedule form">&times;</button>
+                <div class="modal-header">
+                    <h2 id="rescheduleModalTitle">Reschedule Booking</h2>
+                </div>
+                <form id="rescheduleForm" class="reschedule-form">
+                    <input type="hidden" id="rescheduleBookingId" name="booking_id" />
+                    <div class="reschedule-field">
+                        <label for="rescheduleService">Service</label>
+                        <select id="rescheduleService" name="service_id" required>
+                            <option value="">Choose a service</option>
+                        </select>
+                    </div>
+                    <div class="reschedule-field">
+                        <label for="rescheduleDate">New date</label>
+                        <input type="date" id="rescheduleDate" name="booking_date" required />
+                    </div>
+                    <div class="reschedule-field">
+                        <label for="rescheduleTime">Available time</label>
+                        <select id="rescheduleTime" name="booking_time" required disabled>
+                            <option value="">Choose a date first</option>
+                        </select>
+                    </div>
+                    <p class="reschedule-policy-note"><i class="fas fa-circle-info"></i> You may switch only to a service with the same original price. Your completed downpayment remains applied.</p>
+                    <p class="reschedule-message" id="rescheduleMessage" role="status" aria-live="polite"></p>
+                    <div class="modal-footer reschedule-footer">
+                        <button type="button" class="btn-secondary-modal" id="cancelReschedule">Cancel</button>
+                        <button type="submit" class="btn-confirm-reschedule" id="confirmReschedule">Confirm Reschedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CANCEL BOOKING CONFIRMATION ===== -->
+    <div class="modal-overlay" id="cancelBookingModal" aria-hidden="true">
+        <div class="modal-container">
+            <div class="modal-card cancel-booking-modal" role="dialog" aria-modal="true" aria-labelledby="cancelBookingModalTitle">
+                <button type="button" class="modal-close" id="cancelBookingModalClose" aria-label="Close cancellation confirmation">&times;</button>
+                <div class="modal-header">
+                    <p class="modal-kicker warning"><i class="fas fa-triangle-exclamation"></i> Cancellation warning</p>
+                    <h2 id="cancelBookingModalTitle">Cancel this booking?</h2>
+                </div>
+                <div class="cancel-booking-content">
+                    <p>Are you sure you want to cancel this booking?</p>
+                    <div class="cancel-policy-warning">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <div>
+                            <strong>No refund for the downpayment</strong>
+                            <span>Your completed 50% downpayment is non-refundable, and this cancelled booking will not earn rewards points.</span>
+                        </div>
+                    </div>
+                    <p class="cancel-message" id="cancelBookingMessage" role="status" aria-live="polite"></p>
+                </div>
+                <div class="modal-footer cancel-booking-footer">
+                    <button type="button" class="btn-secondary-modal" id="keepBooking">Keep Booking</button>
+                    <button type="button" class="btn-confirm-cancel" id="confirmCancelBooking">Yes, Cancel Booking</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== JAVASCRIPT ===== -->
+    <script>window.bookingPageConfig = { csrfToken: <?php echo json_encode($bookingCsrfToken); ?>, services: <?php echo json_encode($availableServices); ?> };</script>
     <script src="../JS/bookings.js"></script>
 
 </body>
@@ -241,8 +327,8 @@ if (count($name_parts) >= 2) {
 // Helper functions (placed here for clarity, can also be in a separate file)
 function getStatusBadgeClass(string $status): string {
     return match ($status) {
-        'pending'   => 'status-pending',
         'confirmed' => 'status-confirmed',
+        'rescheduled' => 'status-rescheduled',
         'completed' => 'status-completed',
         'cancelled' => 'status-cancelled',
         default     => 'status-default',
@@ -251,8 +337,8 @@ function getStatusBadgeClass(string $status): string {
 
 function getStatusIcon(string $status): string {
     return match ($status) {
-        'pending'   => 'fa-clock',
         'confirmed' => 'fa-check-circle',
+        'rescheduled' => 'fa-calendar-pen',
         'completed' => 'fa-check-double',
         'cancelled' => 'fa-times-circle',
         default     => 'fa-circle',

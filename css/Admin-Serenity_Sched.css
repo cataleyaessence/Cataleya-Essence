@@ -823,3 +823,161 @@ body {
         padding: 12px 10px 24px;
     }
 }
+
+/* Schedule page visual refresh */
+.page-header {
+    max-width: 1060px;
+    margin: 0 auto 24px;
+}
+
+.page-eyebrow {
+    margin: 0 0 4px;
+    color: var(--pink-accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.page-eyebrow i { margin-right: 5px; }
+.legend-dot.rescheduled { background: #7258c9; }
+.legend-dot.completed { background: #258464; }
+
+.calendar-card {
+    padding: 0 20px 18px;
+    border-radius: 18px;
+}
+
+.calendar-card-intro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 0 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.calendar-card-kicker {
+    margin: 0 0 5px;
+    color: var(--pink-accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.calendar-card-intro h2 {
+    margin: 0;
+    color: var(--text-dark);
+    font: 700 19px 'Playfair Display', serif;
+}
+
+.calendar-card-intro p:last-child {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.appointment-count {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    flex-shrink: 0;
+    padding: 9px 12px;
+    border: 1px solid #f2d4df;
+    border-radius: 11px;
+    background: #fff7fa;
+    color: var(--text-mid);
+}
+
+.appointment-count strong { color: var(--pink-accent); font-size: 18px; line-height: 1; }
+.appointment-count span { font-size: 11px; font-weight: 600; }
+
+.cal-month-nav {
+    margin: 0 -4px 12px;
+    padding: 14px 4px 0;
+    border-bottom: 0;
+}
+
+.cal-month-nav .cal-nav-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--white);
+    font-size: 13px;
+}
+
+.cal-month-nav #datePicker { padding: 7px 9px; }
+.cal-today-btn { padding: 8px 13px; border-radius: 9px; }
+
+.cal-day-nav {
+    margin-bottom: 12px;
+    padding: 8px;
+    border: 1px solid #f6dce5;
+    border-radius: 11px;
+    background: #fff9fb;
+}
+
+.cal-day-nav .cal-nav-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: var(--white);
+    font-size: 12px;
+}
+
+.timeline-labels {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    padding: 0 10px 7px 0;
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.timeline-labels span:first-child { padding-right: 10px; text-align: right; }
+.time-grid { max-height: 360px; padding-right: 2px; }
+.time-row:hover { background: rgba(252, 232, 239, 0.5); }
+.appt-block.rescheduled { background: #7258c9; }
+.appt-block.completed { background: #258464; }
+
+.previous-bookings-card {
+    max-width: 1060px;
+    margin: 0 auto 24px;
+    border-radius: 18px;
+}
+
+.previous-booking-item {
+    gap: 7px;
+    padding: 14px 16px;
+    border: 1px solid #f2dce4;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(90, 32, 53, .025);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.previous-booking-item:hover { border-color: #edb7c9; box-shadow: 0 5px 14px rgba(90, 32, 53, .07); }
+.booking-status.rescheduled { background: #f0ecff; color: #7258c9; }
+.booking-status.completed { background: #e8f7f0; color: #258464; }
+
+@media (max-width: 768px) {
+    .page-header, .calendar-card, .previous-bookings-card { max-width: none; }
+    .calendar-card { padding: 0 14px 18px; }
+    .calendar-card-intro { align-items: flex-start; padding: 16px 0 13px; }
+    .calendar-card-intro h2 { font-size: 17px; }
+    .timeline-labels { grid-template-columns: 48px minmax(0, 1fr); padding-right: 6px; }
+}
+
+@media (max-width: 480px) {
+    .calendar-card { padding: 0 10px 14px; }
+    .calendar-card-intro { gap: 10px; padding: 14px 0 12px; }
+    .calendar-card-intro p:last-child, .appointment-count span { display: none; }
+    .appointment-count { padding: 8px 9px; }
+}

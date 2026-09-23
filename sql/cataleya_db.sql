@@ -61,15 +61,29 @@ CREATE TABLE bookings (
     booking_date DATE NOT NULL,
     booking_time TIME NOT NULL,
     deadline DATETIME DEFAULT NULL,
-    status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
+    status ENUM('pending', 'confirmed', 'rescheduled', 'completed', 'cancelled') DEFAULT 'confirmed',
     auto_cancelled BOOLEAN DEFAULT 0,
     total_amount DECIMAL(10, 2) NOT NULL,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    active_user_slot_key VARCHAR(128) GENERATED ALWAYS AS (
+        CASE WHEN status IN ('confirmed', 'rescheduled')
+            THEN CONCAT(user_id, '|', booking_date, '|', booking_time)
+            ELSE NULL
+        END
+    ) STORED,
+    active_slot_key VARCHAR(128) GENERATED ALWAYS AS (
+        CASE WHEN status IN ('confirmed', 'rescheduled')
+            THEN CONCAT(booking_date, '|', booking_time)
+            ELSE NULL
+        END
+    ) STORED,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE,
-    FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE SET NULL
+    FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE SET NULL,
+    UNIQUE KEY uq_bookings_active_user_slot (active_user_slot_key),
+    UNIQUE KEY uq_bookings_active_slot (active_slot_key)
 );
 
 -- Reviews/Ratings Table

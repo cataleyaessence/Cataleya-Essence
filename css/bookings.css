@@ -680,24 +680,49 @@ img {
     flex-shrink: 0;
 }
 
-.btn-cancel-booking {
-    background: #fee;
-    color: #e74c3c;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--ease), transform var(--ease);
+.btn-reschedule-booking {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    border: 1px solid rgba(233, 30, 140, 0.35);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--pink);
+    padding: 7px 12px;
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background var(--ease), color var(--ease), transform var(--ease);
+}
+
+.btn-reschedule-booking:hover {
+    background: var(--pink);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.btn-cancel-booking {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #f3b3b0;
+    border-radius: 999px;
+    background: #fff;
+    color: #c93d38;
+    padding: 7px 12px;
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background var(--ease), color var(--ease), transform var(--ease);
 }
 
 .btn-cancel-booking:hover {
-    background: #fdd;
-    transform: scale(1.04);
+    background: #d9423a;
+    border-color: #d9423a;
+    color: #fff;
+    transform: translateY(-1px);
 }
 
 /* ───────── STATUS BADGES ───────── */
@@ -719,14 +744,14 @@ img {
     font-size: 0.65rem;
 }
 
-.status-pending {
-    background: #FEF3C7;
-    color: #92400E;
-}
-
 .status-confirmed {
     background: #DBEAFE;
     color: #1E40AF;
+}
+
+.status-rescheduled {
+    background: #F3E8FF;
+    color: #6B21A8;
 }
 
 .status-completed {
@@ -966,6 +991,23 @@ img {
     border-bottom: 1px solid var(--border-light);
 }
 
+.booking-details-card .modal-header {
+    background: linear-gradient(135deg, #fff7fb 0%, #fbe8f1 100%);
+    border-bottom-color: rgba(233, 30, 140, 0.14);
+}
+
+.modal-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 7px;
+    color: var(--pink);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
 .modal-header h2 {
     font-family: var(--font-display);
     font-size: 1.5rem;
@@ -974,13 +1016,23 @@ img {
 }
 
 .booking-details-content {
-    padding: 22px 28px 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 20px 28px;
     max-height: min(60vh, 520px);
     overflow-y: auto;
+    background: linear-gradient(180deg, #fff 0%, #fffafd 100%);
 }
 
 .booking-detail-item {
-    margin-bottom: 18px;
+    min-width: 0;
+    margin: 0;
+    padding: 14px 15px;
+    border: 1px solid rgba(233, 30, 140, 0.1);
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(71, 35, 54, 0.04);
 }
 
 .booking-detail-item:last-child {
@@ -994,7 +1046,49 @@ img {
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: #999;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
+}
+
+.booking-service-summary,
+.booking-schedule-details,
+.booking-notes-details {
+    grid-column: 1 / -1;
+}
+
+.booking-service-summary {
+    display: flex;
+    align-items: center;
+    min-height: 82px;
+    padding: 15px 17px;
+    border-color: rgba(233, 30, 140, 0.2);
+    background: linear-gradient(135deg, #fff 0%, #fff1f7 100%);
+}
+
+.booking-service-summary > label {
+    display: none;
+}
+
+.booking-service-summary .service-detail {
+    width: 100%;
+}
+
+.booking-schedule-details {
+    background: #fff9fc;
+}
+
+.booking-status-details .detail-value {
+    align-items: flex-start;
+}
+
+.booking-price-details {
+    background: #fffbf2;
+    border-color: rgba(225, 150, 31, 0.18);
+}
+
+.booking-reference-details {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: #fcfcfd;
 }
 
 .detail-value {
@@ -1018,10 +1112,11 @@ img {
 }
 
 .detail-value.service-detail img {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+    width: 58px;
+    height: 58px;
+    border-radius: 15px;
     object-fit: cover;
+    box-shadow: 0 5px 13px rgba(233, 30, 140, 0.17);
 }
 
 .detail-value.service-detail i {
@@ -1067,7 +1162,186 @@ img {
     border-top: 1px solid var(--border-light);
     display: flex;
     justify-content: flex-end;
+    background: #fffafd;
 }
+
+.reschedule-form {
+    padding: 24px 28px 0;
+}
+
+.reschedule-field {
+    margin-bottom: 18px;
+}
+
+.reschedule-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-dark);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.reschedule-field input,
+.reschedule-field select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text-dark);
+    padding: 9px 12px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+}
+
+.reschedule-field input:focus,
+.reschedule-field select:focus {
+    outline: none;
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px rgba(233, 30, 140, 0.12);
+}
+
+.reschedule-field select:disabled {
+    cursor: not-allowed;
+    background: #f6f6f6;
+    color: var(--text-muted);
+}
+
+.reschedule-message {
+    min-height: 20px;
+    margin: 0 0 4px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.reschedule-message.error { color: #b42318; }
+.reschedule-message.success { color: #067647; }
+
+.reschedule-policy-note {
+    display: flex;
+    gap: 8px;
+    margin: -2px 0 14px;
+    color: #725560;
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
+.reschedule-policy-note i {
+    color: var(--pink);
+    margin-top: 2px;
+}
+
+.reschedule-footer {
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 -28px;
+}
+
+.btn-secondary-modal,
+.btn-confirm-reschedule {
+    border: none;
+    border-radius: var(--r-btn);
+    padding: 10px 18px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-secondary-modal {
+    background: #f2f2f2;
+    color: var(--text-body);
+}
+
+.btn-confirm-reschedule {
+    background: var(--pink);
+    color: #fff;
+}
+
+.btn-confirm-reschedule:hover { background: var(--pink-hover); }
+.btn-confirm-reschedule:disabled { cursor: wait; opacity: 0.7; }
+
+.cancel-booking-modal .modal-header {
+    background: linear-gradient(135deg, #fff8f7 0%, #fff0ee 100%);
+    border-bottom-color: rgba(201, 61, 56, 0.16);
+}
+
+.modal-kicker.warning {
+    color: #c93d38;
+}
+
+.cancel-booking-content {
+    padding: 24px 28px 10px;
+    color: var(--text-body);
+}
+
+.cancel-booking-content > p:first-child {
+    margin: 0 0 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.cancel-policy-warning {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #f3c2be;
+    border-radius: 12px;
+    background: #fff6f5;
+}
+
+.cancel-policy-warning > i {
+    color: #cf3e36;
+    font-size: 1.1rem;
+    margin-top: 2px;
+}
+
+.cancel-policy-warning strong,
+.cancel-policy-warning span {
+    display: block;
+}
+
+.cancel-policy-warning strong {
+    color: #982c27;
+    font-size: 0.84rem;
+}
+
+.cancel-policy-warning span {
+    margin-top: 4px;
+    color: #79514e;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.cancel-message {
+    min-height: 20px;
+    margin: 14px 0 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.cancel-message.error { color: #b42318; }
+.cancel-message.success { color: #067647; }
+
+.cancel-booking-footer {
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.btn-confirm-cancel {
+    border: none;
+    border-radius: var(--r-btn);
+    background: #d9423a;
+    color: #fff;
+    padding: 10px 18px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-confirm-cancel:hover { background: #b92f2a; }
+.btn-confirm-cancel:disabled { cursor: wait; opacity: 0.7; }
 
 .btn-close-modal {
     background: var(--pink);
@@ -1102,9 +1376,22 @@ img {
     .booking-details-content {
         padding: 20px 20px 4px;
         max-height: 62vh;
+        grid-template-columns: 1fr;
     }
 
     .modal-footer {
         padding: 14px 20px 20px;
+    }
+
+    .reschedule-form {
+        padding: 20px 20px 0;
+    }
+
+    .reschedule-footer {
+        margin: 0 -20px;
+    }
+
+    .cancel-booking-content {
+        padding: 20px 20px 8px;
     }
 }

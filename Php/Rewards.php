@@ -9,13 +9,22 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Fetch user data
-$stmt = $pdo->prepare("SELECT id, full_name, email, created_at FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT id, full_name, email, profile_photo, created_at FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
 if (!$user) {
     header('Location: signin.php');
     exit;
+}
+
+$name_parts = array_values(array_filter(explode(' ', trim((string) $user['full_name']))));
+if (count($name_parts) >= 2) {
+    $initials = strtoupper(substr($name_parts[0], 0, 1) . substr($name_parts[count($name_parts) - 1], 0, 1));
+} elseif (count($name_parts) === 1) {
+    $initials = strtoupper(substr($name_parts[0], 0, 2));
+} else {
+    $initials = 'U';
 }
 
 // Fetch user's rewards data
@@ -76,33 +85,20 @@ switch ($current_tier) {
         break;
 }
 
-// Fetch recent activity (all bookings, excluding canceled records)
+// Only completed services earn and show rewards points.
 $stmt = $pdo->prepare("
-    SELECT s.name as service_name, b.booking_date, b.booking_time, b.status, s.price AS original_price, b.total_amount AS discounted_price,
-        COALESCE(rt.points_earned, CASE WHEN s.price <= 400 THEN 10 WHEN s.price <= 799 THEN 15 ELSE 20 END) AS points_earned
+    SELECT s.name AS service_name, b.booking_date, b.booking_time, b.status,
+        s.price AS original_price, b.total_amount AS discounted_price,
+        COALESCE(SUM(rt.points_earned - rt.points_redeemed), 0) AS points_earned
     FROM bookings b
     JOIN services s ON b.service_id = s.id
     LEFT JOIN reward_transactions rt ON b.id = rt.booking_id
-    WHERE b.user_id = ? AND LOWER(b.status) NOT IN ('cancelled', 'canceled')
+    WHERE b.user_id = ? AND b.status = 'completed'
+    GROUP BY b.id, s.name, b.booking_date, b.booking_time, b.status, s.price, b.total_amount
     ORDER BY b.booking_date DESC, b.booking_time DESC
 ");
 $stmt->execute([$user_id]);
 $recent_activity = $stmt->fetchAll();
-
-// If no recent activity, show all completed or pending bookings
-if (empty($recent_activity)) {
-    $stmt = $pdo->prepare("
-        SELECT s.name as service_name, b.booking_date, b.booking_time, b.status, s.price AS original_price,
-            COALESCE(b.total_amount, s.price) AS discounted_price,
-            CASE WHEN s.price <= 400 THEN 10 WHEN s.price <= 799 THEN 15 ELSE 20 END as points_earned
-        FROM bookings b
-        JOIN services s ON b.service_id = s.id
-        WHERE b.user_id = ? AND LOWER(b.status) NOT IN ('cancelled', 'canceled')
-        ORDER BY b.booking_date DESC, b.booking_time DESC
-    ");
-    $stmt->execute([$user_id]);
-    $recent_activity = $stmt->fetchAll();
-}
 
 // Fetch Hall of Fame data
 $stmt = $pdo->prepare("
@@ -151,9 +147,31 @@ $remainder = array_slice($hall_of_fame, 3);
       <a href="home.php" class="nav-link">Home</a>
       <a href="about.php" class="nav-link">About Us</a>
       <a href="serv.php" class="nav-link">Services</a>
-      <a href="Rewards.php" class="nav-link">Rewards</a>
+      <a href="Rewards.php" class="nav-link active">Rewards</a>
     </nav>
+
+    <div class="profile-wrapper" id="profileWrapper">
+      <div class="profile-avatar" id="profileAvatar" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Open profile menu">
+        <?php if (!empty($user['profile_photo'])): ?>
+          <img src="<?php echo htmlspecialchars($user['profile_photo']); ?>" alt="Profile" class="avatar-image" />
+        <?php else: ?>
+          <span class="avatar-initials"><?php echo htmlspecialchars($initials); ?></span>
+        <?php endif; ?>
+        <span class="status-dot" aria-hidden="true"></span>
+      </div>
+      <div class="profile-dropdown" id="profileDropdown" role="menu">
+        <div class="dropdown-header">Account</div>
+        <a href="profile.php" class="dropdown-item" role="menuitem"><i class="fas fa-user"></i>My Profile</a>
+        <div class="dropdown-divider"></div>
+        <a href="../auth/logout.php" class="dropdown-item logout" role="menuitem"><i class="fas fa-sign-out-alt"></i>Logout</a>
+      </div>
+    </div>
+
+    <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </header>
+  <div class="dropdown-overlay" id="dropdownOverlay"></div>
 
   <!-- ========== MEMBERSHIP REWARDS ========== -->
   <section class="rewards" id="rewards">
@@ -261,7 +279,7 @@ $remainder = array_slice($hall_of_fame, 3);
 
       <!-- RIGHT – Recent Activity -->
       <div class="activity-card">
-        <h3 class="activity-card__title">Recent Activity</h3>
+        <h3 class="activity-card__title">Completed Service Rewards</h3>
 
         <?php if (!empty($recent_activity)): ?>
           <?php foreach ($recent_activity as $activity): ?>
@@ -275,7 +293,7 @@ $remainder = array_slice($hall_of_fame, 3);
             </div>
           <?php endforeach; ?>
         <?php else: ?>
-          <p class="activity-item__name">No recent activity</p>
+          <p class="activity-item__name">No completed services yet. Points are added after your service is completed.</p>
         <?php endif; ?>
       </div>
 

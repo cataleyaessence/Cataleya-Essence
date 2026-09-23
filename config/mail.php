@@ -274,4 +274,92 @@ function sendBookingConfirmationEmail($toEmail, $bookingData) {
         return false;
     }
 }
+
+/**
+ * Sends the customer their updated appointment details after a reschedule.
+ * This is deliberately separate from the original booking confirmation so the
+ * subject and status in the message always match the latest appointment.
+ */
+function sendBookingRescheduledEmail($toEmail, $bookingData) {
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'cataleyaessence23@gmail.com';
+        $mail->Password = 'otqf wlwy xxqu iten';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+        $mail->SMTPDebug = SMTP::DEBUG_OFF;
+
+        $mail->setFrom('cataleyaessence23@gmail.com', 'Cataleya Essence of Beauty');
+        $mail->addAddress($toEmail);
+        $mail->addReplyTo('cataleyaessence23@gmail.com', 'Cataleya Essence Support');
+        $mail->Sender = 'cataleyaessence23@gmail.com';
+        $mail->isHTML(true);
+        $mail->Subject = 'Booking Rescheduled - Cataleya Essence of Beauty';
+
+        $bookingReference = 'CAT-' . str_pad((string) ($bookingData['booking_id'] ?? ''), 6, '0', STR_PAD_LEFT);
+        $customerName = trim((string) ($bookingData['customer_name'] ?? ''));
+        $serviceName = (string) ($bookingData['service_name'] ?? 'Service');
+        $bookingDate = (string) ($bookingData['booking_date'] ?? '');
+        $bookingTime = (string) ($bookingData['booking_time'] ?? '');
+        $totalAmount = number_format((float) ($bookingData['total_amount'] ?? 0), 2);
+        $displayDate = date('F j, Y', strtotime($bookingDate));
+        $displayTime = date('g:i A', strtotime($bookingTime));
+
+        $safeName = htmlspecialchars($customerName !== '' ? $customerName : 'Valued Customer', ENT_QUOTES, 'UTF-8');
+        $safeService = htmlspecialchars($serviceName, ENT_QUOTES, 'UTF-8');
+        $safeReference = htmlspecialchars($bookingReference, ENT_QUOTES, 'UTF-8');
+        $safeDate = htmlspecialchars($displayDate, ENT_QUOTES, 'UTF-8');
+        $safeTime = htmlspecialchars($displayTime, ENT_QUOTES, 'UTF-8');
+
+        $mail->Body = "
+        <!DOCTYPE html>
+        <html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Booking Rescheduled</title></head>
+        <body style='margin:0;padding:0;font-family:Arial,sans-serif;background-color:#f5f5f5;'>
+          <div style='max-width:600px;margin:0 auto;background:#ffffff;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.1);'>
+            <div style='text-align:center;margin-bottom:28px;'>
+              <h1 style='color:#E91E8C;margin:0;'>Cataleya Essence</h1>
+              <p style='color:#666;margin:5px 0 0;'>of Beauty</p>
+            </div>
+            <div style='background:#FFF5F8;padding:20px;border-radius:8px;margin:20px 0;text-align:center;border-left:4px solid #E91E8C;'>
+              <h2 style='color:#C9166F;margin:0 0 10px;font-size:24px;'>Booking Rescheduled</h2>
+              <p style='margin:0;color:#333;font-size:16px;'>Hello $safeName, your appointment has been updated.</p>
+            </div>
+            <div style='background:#FFF9FC;padding:25px;border-radius:8px;margin:20px 0;'>
+              <h3 style='color:#E91E8C;margin:0 0 15px;font-size:18px;border-bottom:2px solid #E91E8C;padding-bottom:10px;'>Updated Booking Details</h3>
+              <p style='margin:0 0 12px;color:#333;'><strong>Booking Reference:</strong><br>$safeReference</p>
+              <p style='margin:0 0 12px;color:#333;'><strong>Service:</strong><br>$safeService</p>
+              <p style='margin:0 0 12px;color:#333;'><strong>New Date &amp; Time:</strong><br>$safeDate at $safeTime</p>
+              <p style='margin:0;color:#333;'><strong>Total Amount:</strong><br><span style='color:#E91E8C;font-size:18px;font-weight:bold;'>₱$totalAmount</span></p>
+            </div>
+            <div style='background:#FFF9C4;padding:15px;border-radius:8px;margin:20px 0;border-left:4px solid #FBC02D;'>
+              <p style='margin:0;color:#333;font-size:14px;'><strong>Reminder:</strong> Please arrive 10 minutes before your updated appointment time.</p>
+            </div>
+            <p style='color:#666;line-height:1.6;'><strong>Location:</strong><br>Cataleya Essence of Beauty and Wellness Center<br>Building J Maigapo St. San Vicente, Gapan City, Nueva Ecija</p>
+            <div style='margin-top:30px;padding-top:20px;border-top:1px solid #eee;text-align:center;'><p style='color:#999;font-size:12px;margin:5px 0;'>This is an automated email. Please do not reply.</p></div>
+          </div>
+        </body></html>";
+
+        $mail->AltBody = "Cataleya Essence of Beauty\n\n" .
+            "BOOKING RESCHEDULED\n\n" .
+            "Hello " . ($customerName !== '' ? $customerName : 'Valued Customer') . ", your appointment has been updated.\n\n" .
+            "Booking Reference: $bookingReference\n" .
+            "Service: $serviceName\n" .
+            "New Date & Time: $displayDate at $displayTime\n" .
+            "Total Amount: PHP $totalAmount\n\n" .
+            "Please arrive 10 minutes before your updated appointment time.\n";
+
+        $mail->addCustomHeader('X-Priority', '3');
+        $mail->addCustomHeader('X-MSMail-Priority', 'Normal');
+        $mail->addCustomHeader('X-Mailer', 'PHPMailer ' . PHPMailer::VERSION);
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log('Booking reschedule email error: ' . $mail->ErrorInfo);
+        return false;
+    }
+}
 ?>

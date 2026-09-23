@@ -88,6 +88,31 @@ if (!empty($missing)) {
     exit;
 }
 
+// Accept only a valid future calendar date and an active appointment time slot.
+// Resolving the slot here keeps the booking time and daily availability in sync.
+$dateObject = DateTime::createFromFormat('Y-m-d', $booking_date);
+if (!$dateObject || $dateObject->format('Y-m-d') !== $booking_date || $booking_date < date('Y-m-d')) {
+    echo json_encode(['success' => false, 'error' => 'Please choose a valid future booking date.']);
+    exit;
+}
+
+$stmt = $pdo->prepare(
+    "SELECT id, slot_time, display_time
+     FROM time_slots
+     WHERE is_active = 1 AND (slot_time = ? OR display_time = ?)
+     LIMIT 1"
+);
+$stmt->execute([$booking_time, $booking_time]);
+$time_slot = $stmt->fetch();
+
+if (!$time_slot) {
+    echo json_encode(['success' => false, 'error' => 'Please choose an available appointment time.']);
+    exit;
+}
+
+$slot_id = (int)$time_slot['id'];
+$booking_time = $time_slot['slot_time'];
+
 // Determine current user discount from reward tier
 $current_tier = 'bronze';
 $stmt = $pdo->prepare("SELECT tier FROM rewards WHERE user_id = ? LIMIT 1");
@@ -104,6 +129,42 @@ $discounted_amount = round($base_price * (100 - $discount_rate) / 100, 2);
 
 try {
     $pdo->beginTransaction();
+
+    // Lock the selected slot before creating the booking. This prevents a fast
+    // double-click (or repeated request) from reserving the same slot twice.
+    $stmt = $pdo->prepare(
+        "SELECT id, current_bookings, max_bookings
+         FROM daily_slot_availability
+         WHERE slot_date = ? AND slot_id = ?
+         FOR UPDATE"
+    );
+    $stmt->execute([$booking_date, $slot_id]);
+    $slot_availability = $stmt->fetch();
+
+    if ($slot_availability && (int)$slot_availability['current_bookings'] >= (int)$slot_availability['max_bookings']) {
+        $pdo->rollBack();
+        http_response_code(409);
+        echo json_encode(['success' => false, 'error' => 'This appointment time is no longer available. Please choose another time.']);
+        exit;
+    }
+
+    // A user can only have one active booking in the same date and time.
+    // This gives a clear message after the slot lock has serialized requests.
+    $stmt = $pdo->prepare(
+        "SELECT id
+         FROM bookings
+         WHERE user_id = ? AND booking_date = ? AND booking_time = ?
+           AND status IN ('confirmed', 'rescheduled')
+         LIMIT 1
+         FOR UPDATE"
+    );
+    $stmt->execute([$user_id, $booking_date, $booking_time]);
+    if ($stmt->fetch()) {
+        $pdo->rollBack();
+        http_response_code(409);
+        echo json_encode(['success' => false, 'error' => 'You already have a booking at this date and time. Check My Bookings.']);
+        exit;
+    }
 
     // Insert booking
     $stmt = $pdo->prepare("
@@ -176,70 +237,24 @@ try {
     $stmt->execute([$booking_id]);
     $booking_data = $stmt->fetch();
 
-    // Update rewards - add points based on service price range
-    $points_to_add = calculatePointsByPrice($service_price);
-    
-    // Check if user has rewards record
-    $stmt = $pdo->prepare("SELECT id, points, visits FROM rewards WHERE user_id = ?");
-    $stmt->execute([$user_id]);
-    $rewards = $stmt->fetch();
+    // Reserve the selected time only after the booking and payment records
+    // succeed. A slot with one permitted booking is immediately marked booked.
+    if ($slot_availability) {
+        $new_current = (int)$slot_availability['current_bookings'] + 1;
+        $new_status = $new_current >= (int)$slot_availability['max_bookings'] ? 'booked' : 'filling';
 
-    if ($rewards) {
-        // Update existing rewards - increment points and visits
-        $new_points = $rewards['points'] + $points_to_add;
-        $new_visits = $rewards['visits'] + 1;
-        $new_tier = getTierFromPoints($new_points);
-        
-        $stmt = $pdo->prepare("UPDATE rewards SET points = ?, visits = ?, tier = ? WHERE user_id = ?");
-        $stmt->execute([$new_points, $new_visits, $new_tier, $user_id]);
+        $stmt = $pdo->prepare(
+            "UPDATE daily_slot_availability
+             SET current_bookings = ?, status = ?
+             WHERE id = ?"
+        );
+        $stmt->execute([$new_current, $new_status, $slot_availability['id']]);
     } else {
-        // Create new rewards record
-        $new_tier = getTierFromPoints($points_to_add);
-        
-        $stmt = $pdo->prepare("INSERT INTO rewards (user_id, points, visits, tier) VALUES (?, ?, 1, ?)");
-        $stmt->execute([$user_id, $points_to_add, $new_tier]);
-    }
-
-    // Update daily slot availability
-    $stmt = $pdo->prepare("
-        SELECT id FROM time_slots 
-        WHERE display_time = ? AND is_active = 1 
-        LIMIT 1
-    ");
-    $stmt->execute([$booking_time]);
-    $time_slot = $stmt->fetch();
-
-    if ($time_slot) {
-        $slot_id = $time_slot['id'];
-        
-        // Check if slot availability exists for this date
-        $stmt = $pdo->prepare("
-            SELECT id, current_bookings, max_bookings 
-            FROM daily_slot_availability 
-            WHERE slot_date = ? AND slot_id = ?
-        ");
+        $stmt = $pdo->prepare(
+            "INSERT INTO daily_slot_availability (slot_date, slot_id, status, max_bookings, current_bookings)
+             VALUES (?, ?, 'booked', 1, 1)"
+        );
         $stmt->execute([$booking_date, $slot_id]);
-        $slot_availability = $stmt->fetch();
-
-        if ($slot_availability) {
-            // Update existing
-            $new_current = $slot_availability['current_bookings'] + 1;
-            $new_status = $new_current >= $slot_availability['max_bookings'] ? 'booked' : 'available';
-            
-            $stmt = $pdo->prepare("
-                UPDATE daily_slot_availability 
-                SET current_bookings = ?, status = ? 
-                WHERE id = ?
-            ");
-            $stmt->execute([$new_current, $new_status, $slot_availability['id']]);
-        } else {
-            // Create new
-            $stmt = $pdo->prepare("
-                INSERT INTO daily_slot_availability (slot_date, slot_id, status, max_bookings, current_bookings)
-                VALUES (?, ?, 'filling', 1, 1)
-            ");
-            $stmt->execute([$booking_date, $slot_id]);
-        }
     }
 
     $pdo->commit();
@@ -260,26 +275,19 @@ try {
     ]);
 
 } catch (PDOException $e) {
-    $pdo->rollBack();
-    echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
-}
-
-function calculatePointsByPrice($price) {
-    if ($price <= 400) {
-        return 10;
-    } elseif ($price <= 799) {
-        return 15;
-    } else {
-        return 20;
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
     }
-}
 
-function getTierFromPoints($points) {
-    if ($points >= 200) return 'platinum';
-    if ($points >= 150) return 'gold';
-    if ($points >= 100) return 'silver';
-    if ($points >= 50) return 'bronze';
-    return 'bronze'; // Default to bronze for new users
+    // A concurrent request may reach the unique daily-slot record first.
+    if ($e->getCode() === '23000') {
+        http_response_code(409);
+        echo json_encode(['success' => false, 'error' => 'This appointment time was just reserved. Please choose another time.']);
+        exit;
+    }
+
+    error_log('Unable to create booking: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Unable to save the booking. Please try again.']);
 }
 
 function getDiscountRateFromTier($tier) {

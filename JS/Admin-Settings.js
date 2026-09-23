@@ -31,30 +31,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const updateEmailBtn = document.getElementById('updateEmailBtn');
 
     if (updateEmailBtn) {
-        updateEmailBtn.addEventListener('click', function() {
+        updateEmailBtn.addEventListener('click', function(event) {
             const currentEmail = document.getElementById('currentEmail');
             const newEmail = document.getElementById('newEmail');
             const confirmEmail = document.getElementById('confirmEmail');
 
             if (!newEmail.value.trim()) {
+                event.preventDefault();
                 showToast('Please enter a new email address.', 'error');
                 newEmail.focus();
                 return;
             }
 
             if (!isValidEmail(newEmail.value.trim())) {
+                event.preventDefault();
                 showToast('Please enter a valid email address.', 'error');
                 newEmail.focus();
                 return;
             }
 
             if (newEmail.value.trim() !== confirmEmail.value.trim()) {
+                event.preventDefault();
                 showToast('Email addresses do not match. Please try again.', 'error');
                 confirmEmail.focus();
                 return;
             }
 
             if (newEmail.value.trim() === currentEmail.value.trim()) {
+                event.preventDefault();
                 showToast('New email is the same as the current email.', 'error');
                 newEmail.focus();
                 return;
@@ -72,30 +76,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const updatePasswordBtn = document.getElementById('updatePasswordBtn');
 
     if (updatePasswordBtn) {
-        updatePasswordBtn.addEventListener('click', function() {
+        updatePasswordBtn.addEventListener('click', function(event) {
             const current = document.getElementById('currentPassword');
             const newPass = document.getElementById('newPassword');
             const confirm = document.getElementById('confirmPassword');
 
             if (!current.value.trim()) {
+                event.preventDefault();
                 showToast('Please enter your current password.', 'error');
                 current.focus();
                 return;
             }
 
             if (!newPass.value.trim()) {
+                event.preventDefault();
                 showToast('Please enter a new password.', 'error');
                 newPass.focus();
                 return;
             }
 
             if (newPass.value.length < 6) {
+                event.preventDefault();
                 showToast('New password must be at least 6 characters.', 'error');
                 newPass.focus();
                 return;
             }
 
             if (newPass.value !== confirm.value) {
+                event.preventDefault();
                 showToast('Passwords do not match. Please try again.', 'error');
                 confirm.focus();
                 return;

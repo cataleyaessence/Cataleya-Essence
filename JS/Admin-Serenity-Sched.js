@@ -39,6 +39,7 @@ const calDateEl = document.getElementById('calDate');
 const monthLabelEl = document.getElementById('monthLabel');
 const datePicker = document.getElementById('datePicker');
 const previousBookingsContainer = document.getElementById('previousBookingsList');
+const appointmentCountEl = document.getElementById('appointmentCount');
 
 // ── Helpers ──
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -170,6 +171,12 @@ function buildGrid() {
         emptyHint.style.fontSize = '12px';
         emptyHint.innerHTML = `<i class="fas fa-calendar-plus" style="font-size:20px;"></i> No appointments for this day`;
         grid.appendChild(emptyHint);
+    }
+
+    if (appointmentCountEl) {
+        appointmentCountEl.textContent = String(appointments.length);
+        const countLabel = appointmentCountEl.nextElementSibling;
+        if (countLabel) countLabel.textContent = appointments.length === 1 ? 'appointment' : 'appointments';
     }
 }
 

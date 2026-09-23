@@ -578,19 +578,37 @@ img { display: block; }
   padding: 10px;
   border: none;
   border-radius: 30px;
-  background: #f5edf0;
-  color: #777;
+  background: linear-gradient(135deg, #ed237f 0%, #d41462 100%);
+  color: #fff;
   font-family: var(--font-body);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
   cursor: pointer;
-  transition: 0.2s;
+  box-shadow: 0 5px 14px rgba(213, 20, 98, 0.24);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .service-card .book-btn:hover {
-  background: var(--pink);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(233,30,140,0.25);
+  background: linear-gradient(135deg, #d41462 0%, #b30f50 100%);
+  box-shadow: 0 8px 18px rgba(213, 20, 98, 0.32);
+  transform: translateY(-1px);
+}
+
+.service-card .book-btn:focus-visible {
+  outline: 3px solid rgba(233, 30, 122, 0.28);
+  outline-offset: 3px;
+}
+
+.service-card .book-btn:active {
+  transform: translateY(0);
+}
+
+.service-card .book-btn:disabled {
+  background: #f0e5ea;
+  color: #9a7a88;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .no-results {

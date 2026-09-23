@@ -166,32 +166,7 @@ for ($i = 4; $i >= 0; $i--) {
 }
 
 // ── BOOKING TREND (last 90 days) ──
-$bookingTrend = [];
-for ($i = 89; $i >= 0; $i--) {
-    $date = date('Y-m-d', strtotime("-$i days"));
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM bookings WHERE DATE(booking_date) = ?");
-    $stmt->execute([$date]);
-    $bookingTrend[] = [
-        'date' => date('M d', strtotime($date)),
-        'value' => (int)$stmt->fetch()['total']
-    ];
-}
-
 // ── TOP STAFF BY USER BOOKINGS ──
-$stmt = $pdo->prepare("
-    SELECT s.id, s.full_name, s.title, s.rating, s.total_reviews, COUNT(b.id) as booking_count
-    FROM staff s
-    LEFT JOIN bookings b ON s.id = b.staff_id
-      AND b.user_id IS NOT NULL
-      AND b.status IN ('pending', 'confirmed', 'completed')
-      AND DATE_FORMAT(b.booking_date, '%Y-%m') = ?
-    GROUP BY s.id
-    ORDER BY booking_count DESC, s.rating DESC
-    LIMIT 5
-");
-$stmt->execute([$currentMonth]);
-$staffData = $stmt->fetchAll();
-
 // ── BOOKINGS BY SERVICE ──
 $stmt = $pdo->prepare(" 
     SELECT s.name, COUNT(b.id) as booking_count
@@ -199,7 +174,9 @@ $stmt = $pdo->prepare("
     LEFT JOIN bookings b ON s.id = b.service_id AND b.status IN ('confirmed', 'completed')
     AND DATE_FORMAT(b.booking_date, '%Y-%m') = ?
     GROUP BY s.id
-    ORDER BY booking_count DESC
+    HAVING booking_count > 0
+    ORDER BY booking_count DESC, s.name ASC
+    LIMIT 5
 ");
 $stmt->execute([$currentMonth]);
 $serviceData = $stmt->fetchAll();
@@ -270,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <link rel="stylesheet" href="../css/Admin-Booking Analytics.css" />
     <link rel="stylesheet" href="../css/admin-sidebar.css" />
 </head>
-<body>
+<body class="analytics-page">
 
     <!-- ── TOP NAVBAR ── -->
     <header class="navbar">
@@ -318,34 +295,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <!-- Page Header -->
             <div class="page-header">
                 <div>
+                    <span class="page-eyebrow"><i class="fas fa-chart-line"></i> Performance overview</span>
                     <h1 class="page-title">Booking Analytics</h1>
                     <p class="page-sub">Monitoring sales performance and booking trends.</p>
+                </div>
+                <div class="analytics-period" aria-label="Current reporting period">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div>
+                        <span>Current reporting period</span>
+                        <strong><?php echo date('F Y'); ?></strong>
+                    </div>
                 </div>
             </div>
             <!-- Metrics Row -->
             <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-label">Total Appointments</div>
+                <div class="metric-card metric-card--appointments">
+                    <div class="metric-card-top">
+                        <div class="metric-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="metric-label">Total Appointments</div>
+                    </div>
                     <div class="metric-value"><?php echo $totalBookings; ?></div>
                     <span class="metric-change"><span class="<?php echo $bookingsChange > 0 ? 'up' : ($bookingsChange < 0 ? 'down' : 'neutral'); ?>"><?php echo $bookingsChangeSign . $bookingsChange; ?>%</span> vs last month</span>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-label">Confirmed</div>
+                <div class="metric-card metric-card--confirmed">
+                    <div class="metric-card-top">
+                        <div class="metric-icon"><i class="fas fa-circle-check"></i></div>
+                        <div class="metric-label">Confirmed</div>
+                    </div>
                     <div class="metric-value"><?php echo $confirmedBookings; ?></div>
                     <span class="metric-change"><span class="<?php echo $confirmedChange > 0 ? 'up' : ($confirmedChange < 0 ? 'down' : 'neutral'); ?>"><?php echo $confirmedChangeSign . $confirmedChange; ?>%</span> vs last month</span>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-label">Pending</div>
-                    <div class="metric-value"><?php echo $pendingBookings; ?></div>
-                    <span class="metric-change"><span class="<?php echo $pendingChange > 0 ? 'up' : ($pendingChange < 0 ? 'down' : 'neutral'); ?>"><?php echo $pendingChangeSign . $pendingChange; ?>%</span> vs last month</span>
+                <div class="metric-card metric-card--completed">
+                    <div class="metric-card-top">
+                        <div class="metric-icon"><i class="fas fa-award"></i></div>
+                        <div class="metric-label">Completed</div>
+                    </div>
+                    <div class="metric-value"><?php echo $completedBookings; ?></div>
+                    <span class="metric-change"><span class="<?php echo $completedChange > 0 ? 'up' : ($completedChange < 0 ? 'down' : 'neutral'); ?>"><?php echo $completedChangeSign . $completedChange; ?>%</span> vs last month</span>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-label">Cancelled</div>
+                <div class="metric-card metric-card--cancelled">
+                    <div class="metric-card-top">
+                        <div class="metric-icon"><i class="fas fa-calendar-xmark"></i></div>
+                        <div class="metric-label">Cancelled</div>
+                    </div>
                     <div class="metric-value"><?php echo $canceledBookings; ?></div>
                     <span class="metric-change"><span class="<?php echo $canceledChange > 0 ? 'up' : ($canceledChange < 0 ? 'down' : 'neutral'); ?>"><?php echo $canceledChangeSign . $canceledChange; ?>%</span> vs last month</span>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-label">Downpayment Revenue</div>
+                <div class="metric-card metric-card--revenue">
+                    <div class="metric-card-top">
+                        <div class="metric-icon"><i class="fas fa-peso-sign"></i></div>
+                        <div class="metric-label">Downpayment Revenue</div>
+                    </div>
                     <div class="metric-value">₱<?php echo number_format($totalRevenue, 0); ?></div>
                     <span class="metric-change"><span class="<?php echo $revenueChange > 0 ? 'up' : ($revenueChange < 0 ? 'down' : 'neutral'); ?>"><?php echo $revenueChangeSign . $revenueChange; ?>%</span> vs last month</span>
                 </div>
@@ -356,7 +356,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h2 class="chart-title">Booking Trend</h2>
+                        <div>
+                            <h2 class="chart-title">Booking Trend</h2>
+                            <p class="card-subtitle">Appointments recorded over time</p>
+                        </div>
                         <div class="period-tabs">
                             <button class="period-tab active" data-period="weekly">Weekly</button>
                             <button class="period-tab" data-period="monthly">Monthly</button>
@@ -368,7 +371,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                 </div>
 
-                <div class="stats-col">
+                <div class="stats-col" hidden>
                     <div class="revenue-card">
                         <span class="revenue-arrow">↗</span>
                         <div class="revenue-amount">₱<?php echo number_format($totalRevenue, 0); ?></div>
@@ -383,15 +386,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <!-- Staff + Services -->
             <div class="staff-services-grid">
 
-                <div class="staff-card">
-                    <h3 class="staff-card-title">Top Staff by Bookings</h3>
+                <div class="staff-card" hidden>
+                    <div class="panel-heading">
+                        <div>
+                            <h3 class="staff-card-title">Top Staff by Bookings</h3>
+                            <p class="card-subtitle">This month’s busiest team members</p>
+                        </div>
+                        <i class="fas fa-user-group panel-heading-icon"></i>
+                    </div>
                     <div id="staffList"></div>
                 </div>
 
                 <div class="services-card">
-                    <h3 class="services-card-title">Bookings by Service</h3>
+                    <div class="panel-heading">
+                        <div>
+                            <h3 class="services-card-title">Bookings by Service</h3>
+                            <p class="card-subtitle">Top 5 booked services this month</p>
+                        </div>
+                        <i class="fas fa-spa panel-heading-icon"></i>
+                    </div>
                     <div class="services-chart-wrap">
                         <canvas id="servicesPieChart"></canvas>
+                        <p class="analytics-empty" id="servicesEmpty" hidden>No service bookings recorded for this month.</p>
                     </div>
                 </div>
 
@@ -400,12 +416,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <!-- Overview Bar -->
             <div class="overview-card">
                 <div class="overview-header">
-                    <h3 class="overview-card-title">Bookings Overview</h3>
+                    <div>
+                        <h3 class="overview-card-title">Bookings Overview</h3>
+                        <p class="card-subtitle">Compare appointment volume by period</p>
+                    </div>
                     <div class="period-tabs">
-                        <button class="period-tab active" data-period="daily">Daily</button>
-                        <button class="period-tab" data-period="weekly">Weekly</button>
+                        <button class="period-tab active" data-period="weekly">Weekly</button>
                         <button class="period-tab" data-period="monthly">Monthly</button>
-                        <button class="period-tab" data-period="annual">Annual</button>
+                        <button class="period-tab" data-period="annual">Annually</button>
                     </div>
                 </div>
                 <div class="overview-chart-wrap">
@@ -417,10 +435,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
     <script>
         window.analyticsData = {
-            staffData: <?php echo json_encode($staffData); ?>,
             serviceData: <?php echo json_encode($serviceData); ?>,
             monthlyOverview: <?php echo json_encode($monthlyOverview); ?>,
-            bookingTrend: <?php echo json_encode($bookingTrend); ?>,
             inventory: <?php echo json_encode([
                 'inStock' => $inStock,
                 'lowStock' => $lowStock,

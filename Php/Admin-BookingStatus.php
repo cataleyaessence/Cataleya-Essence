@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/admin_activity.php';
+require_once __DIR__ . '/../config/rewards.php';
 
 if (empty($_SESSION['admin_logged_in']) || empty($_SESSION['admin_id'])) {
     header('Location: signin.php');
@@ -48,22 +49,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['boo
         $newStatus = $allowedTransitions[$_POST['action']];
         $wasUpdated = false;
 
-        if ($_POST['action'] === 'complete_booking') {
-            $checkStmt = $pdo->prepare("SELECT booking_date, booking_time, status FROM bookings WHERE id = ? AND status = 'confirmed'");
-            $checkStmt->execute([$bookingId]);
-            $booking = $checkStmt->fetch();
-            if ($booking) {
-                $scheduledDateTime = parseBookingDateTime($booking['booking_date'], $booking['booking_time']);
-                if ($scheduledDateTime === false || new DateTime() >= $scheduledDateTime) {
-                    $stmt = $pdo->prepare("UPDATE bookings SET status = ?, updated_at = NOW() WHERE id = ?");
-                    $stmt->execute([$newStatus, $bookingId]);
+        try {
+            $pdo->beginTransaction();
+
+            if ($_POST['action'] === 'complete_booking') {
+                $checkStmt = $pdo->prepare("SELECT booking_date, booking_time, status FROM bookings WHERE id = ? AND status IN ('confirmed', 'rescheduled') FOR UPDATE");
+                $checkStmt->execute([$bookingId]);
+                $booking = $checkStmt->fetch();
+                if ($booking) {
+                    $scheduledDateTime = parseBookingDateTime($booking['booking_date'], $booking['booking_time']);
+                    if ($scheduledDateTime === false || new DateTime() >= $scheduledDateTime) {
+                        $stmt = $pdo->prepare("UPDATE bookings SET status = 'completed', updated_at = NOW() WHERE id = ? AND status IN ('confirmed', 'rescheduled')");
+                        $stmt->execute([$bookingId]);
+                        $wasUpdated = $stmt->rowCount() > 0;
+                        if ($wasUpdated) {
+                            awardCompletedBookingRewards($pdo, $bookingId);
+                        }
+                    }
+                }
+            } else {
+                // A completed booking cannot be cancelled. Active bookings have
+                // no reward points under the completion-only rewards policy.
+                $checkStmt = $pdo->prepare("SELECT user_id FROM bookings WHERE id = ? AND status IN ('confirmed', 'rescheduled') FOR UPDATE");
+                $checkStmt->execute([$bookingId]);
+                $booking = $checkStmt->fetch();
+                if ($booking) {
+                    removeBookingRewardPoints($pdo, $bookingId, (int) $booking['user_id']);
+                    $stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND status IN ('confirmed', 'rescheduled')");
+                    $stmt->execute([$bookingId]);
                     $wasUpdated = $stmt->rowCount() > 0;
                 }
             }
-        } else {
-            $stmt = $pdo->prepare("UPDATE bookings SET status = ?, updated_at = NOW() WHERE id = ?");
-            $stmt->execute([$newStatus, $bookingId]);
-            $wasUpdated = $stmt->rowCount() > 0;
+
+            $pdo->commit();
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('Admin booking status update error: ' . $exception->getMessage());
         }
 
         if ($wasUpdated) {
@@ -84,8 +107,8 @@ $stmt = $pdo->prepare(
      LEFT JOIN users u ON b.user_id = u.id
      LEFT JOIN services s ON b.service_id = s.id
      LEFT JOIN staff st ON b.staff_id = st.id
-     WHERE b.status IN ('confirmed', 'completed', 'cancelled')
-     ORDER BY FIELD(b.status, 'confirmed', 'completed', 'cancelled'), b.booking_date ASC, b.booking_time ASC"
+     WHERE b.status IN ('confirmed', 'rescheduled', 'completed', 'cancelled')
+     ORDER BY FIELD(b.status, 'confirmed', 'rescheduled', 'completed', 'cancelled'), b.booking_date ASC, b.booking_time ASC"
 );
 $stmt->execute();
 $bookings = $stmt->fetchAll();
@@ -93,6 +116,7 @@ $bookingCount = count($bookings);
 
 $statusCounts = [
     'confirmed' => 0,
+    'rescheduled' => 0,
     'completed' => 0,
     'cancelled' => 0,
 ];
@@ -102,6 +126,7 @@ foreach ($statusStmt->fetchAll() as $row) {
         $statusCounts[$row['status']] = (int)$row['count'];
     }
 }
+$activeBookingCount = $statusCounts['confirmed'] + $statusCounts['rescheduled'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -164,16 +189,20 @@ foreach ($statusStmt->fetchAll() as $row) {
 
             <div class="booking-status-card">
                 <div>
-                    <h2>Confirmed Bookings</h2>
-                    <p class="page-sub">Ready appointments with a recorded 50% downpayment.</p>
+                    <h2>Active Bookings</h2>
+                    <p class="page-sub">Confirmed appointments and customer reschedules with a recorded 50% downpayment.</p>
                 </div>
-                <div class="status-value"><?php echo $statusCounts['confirmed']; ?></div>
+                <div class="status-value"><?php echo $activeBookingCount; ?></div>
             </div>
 
             <div class="status-summary-grid">
                 <div class="status-summary-card confirmed" data-status="confirmed">
                     <span class="summary-label">Confirmed</span>
                     <span class="summary-value"><?php echo $statusCounts['confirmed']; ?></span>
+                </div>
+                <div class="status-summary-card rescheduled" data-status="rescheduled">
+                    <span class="summary-label">Rescheduled</span>
+                    <span class="summary-value"><?php echo $statusCounts['rescheduled']; ?></span>
                 </div>
                 <div class="status-summary-card completed" data-status="completed">
                     <span class="summary-label">Completed</span>
@@ -189,12 +218,13 @@ foreach ($statusStmt->fetchAll() as $row) {
                 <div class="section-header">
                     <div>
                         <h2>Bookings</h2>
-                        <p>Manage confirmed, completed, and canceled appointments.</p>
+                        <p>Manage confirmed, rescheduled, completed, and canceled appointments.</p>
                     </div>
                 </div>
                 <div class="booking-filter-bar">
                     <button type="button" class="filter-button active" data-status="all">All</button>
                     <button type="button" class="filter-button" data-status="confirmed">Confirmed</button>
+                    <button type="button" class="filter-button" data-status="rescheduled">Rescheduled</button>
                     <button type="button" class="filter-button" data-status="completed">Completed</button>
                     <button type="button" class="filter-button" data-status="cancelled">Canceled</button>
                 </div>
@@ -212,6 +242,9 @@ foreach ($statusStmt->fetchAll() as $row) {
                                 switch ($booking['status']) {
                                     case 'confirmed':
                                         $statusClass = 'confirmed';
+                                        break;
+                                    case 'rescheduled':
+                                        $statusClass = 'rescheduled';
                                         break;
                                     case 'completed':
                                         $statusClass = 'completed';
@@ -242,7 +275,7 @@ foreach ($statusStmt->fetchAll() as $row) {
                                     <div class="booking-who">Notes: <?php echo htmlspecialchars($booking['notes']); ?></div>
                                 <?php endif; ?>
                                 <div class="booking-actions">
-                                    <?php if ($booking['status'] === 'confirmed'): ?>
+                                    <?php if (in_array($booking['status'], ['confirmed', 'rescheduled'], true)): ?>
                                         <?php
                                             $scheduledDateTime = parseBookingDateTime($booking['booking_date'], $booking['booking_time']);
                                             $canComplete = $scheduledDateTime === false || new DateTime() >= $scheduledDateTime;

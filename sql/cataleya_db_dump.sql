@@ -38,12 +38,14 @@ CREATE TABLE `bookings` (
   `booking_date` varchar(50) NOT NULL,
   `booking_time` time NOT NULL,
   `deadline` datetime DEFAULT NULL,
-  `status` enum('pending','confirmed','completed','cancelled') DEFAULT 'pending',
+  `status` enum('pending','confirmed','rescheduled','completed','cancelled') DEFAULT 'confirmed',
   `auto_cancelled` tinyint(1) DEFAULT '0',
   `total_amount` decimal(10,2) NOT NULL,
   `notes` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `active_user_slot_key` varchar(128) GENERATED ALWAYS AS (case when (`status` in (_utf8mb4'confirmed',_utf8mb4'rescheduled')) then concat(`user_id`,_utf8mb4'|',`booking_date`,_utf8mb4'|',`booking_time`) else NULL end) STORED,
+  `active_slot_key` varchar(128) GENERATED ALWAYS AS (case when (`status` in (_utf8mb4'confirmed',_utf8mb4'rescheduled')) then concat(`booking_date`,_utf8mb4'|',`booking_time`) else NULL end) STORED
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -442,7 +444,9 @@ ALTER TABLE `bookings`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
   ADD KEY `service_id` (`service_id`),
-  ADD KEY `staff_id` (`staff_id`);
+  ADD KEY `staff_id` (`staff_id`),
+  ADD UNIQUE KEY `uq_bookings_active_user_slot` (`active_user_slot_key`),
+  ADD UNIQUE KEY `uq_bookings_active_slot` (`active_slot_key`);
 
 --
 -- Indexes for table `daily_slot_availability`

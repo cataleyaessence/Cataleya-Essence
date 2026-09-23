@@ -3,10 +3,8 @@
    ============================================================ */
 
 // ── Use PHP-fetched data or fallback to empty arrays ──
-const staffData = window.analyticsData?.staffData || [];
 const serviceDataRaw = window.analyticsData?.serviceData || [];
 const monthlyOverview = window.analyticsData?.monthlyOverview || [];
-const bookingTrend = window.analyticsData?.bookingTrend || [];
 const inventory = window.analyticsData?.inventory || { inStock: 0, lowStock: 0, critical: 0, total: 0 };
 const periods = window.analyticsData?.periods || {
     weekly: { revenue: [], bookings: [] },
@@ -15,7 +13,10 @@ const periods = window.analyticsData?.periods || {
 };
 
 // ── Transform service data for chart ──
-const serviceData = serviceDataRaw.map(s => ({
+const serviceData = serviceDataRaw
+    .filter(s => Number(s.booking_count) > 0)
+    .slice(0, 5)
+    .map(s => ({
     label: s.name + ' (' + s.percentage + '%)',
     value: s.booking_count,
     pct: s.percentage
@@ -23,10 +24,6 @@ const serviceData = serviceDataRaw.map(s => ({
 
 // ── Transform booking data for period tabs ──
 const bookingDataMap = {
-    daily: {
-        labels: bookingTrend.map(d => d.date),
-        data: bookingTrend.map(d => d.value)
-    },
     weekly: {
         labels: periods.weekly.bookings.map(d => d.date),
         data: periods.weekly.bookings.map(d => d.count)
@@ -48,7 +45,6 @@ function createBaseline(values) {
 }
 
 const bookingBaselineMap = {
-    daily: createBaseline(bookingDataMap.daily.data),
     weekly: createBaseline(bookingDataMap.weekly.data),
     monthly: createBaseline(bookingDataMap.monthly.data),
     annual: createBaseline(bookingDataMap.annual.data)
@@ -71,30 +67,6 @@ const bookingsDataMap = {
 };
 
 // ── Render Staff List ──
-function renderStaff() {
-    const maxBookings = Math.max(...staffData.map(s => s.booking_count || 0));
-    const container = document.getElementById('staffList');
-    if (!container) return;
-    container.innerHTML = staffData.map(s => {
-        const bookings = s.booking_count || 0;
-        const pct = maxBookings > 0 ? (bookings / maxBookings) * 100 : 0;
-        const initials = s.full_name.split(' ').map(w => w[0]).join('');
-        return `
-            <div class="staff-row">
-                <div class="staff-name">
-                    <span class="staff-avatar">${initials}</span>
-                    ${s.full_name}
-                </div>
-                <div class="staff-bar-wrap">
-                    <div class="staff-bar" style="width:${pct}%;"></div>
-                </div>
-                <span class="staff-count">${bookings}</span>
-            </div>
-        `;
-    }).join('');
-}
-renderStaff();
-
 // ── Booking Trend Chart (Line) ──
 const ctx = document.getElementById('revenueChart').getContext('2d');
 const grad = ctx.createLinearGradient(0, 0, 0, 200);
@@ -161,49 +133,56 @@ const revenueChart = new Chart(ctx, {
 });
 
 // ── Services Pie Chart ──
-const pieCtx = document.getElementById('servicesPieChart').getContext('2d');
-const pieColors = ['#e91e7a', '#f06292', '#f8a4b8', '#fcc9d6', '#fce8ef'];
-new Chart(pieCtx, {
-    type: 'doughnut',
-    data: {
-        labels: serviceData.map(s => s.label + ' (' + s.pct + ')'),
-        datasets: [{
-            data: serviceData.map(s => s.value),
-            backgroundColor: pieColors,
-            borderColor: '#fff',
-            borderWidth: 2,
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'right',
-                labels: {
-                    boxWidth: 12,
+const servicesCanvas = document.getElementById('servicesPieChart');
+const servicesEmpty = document.getElementById('servicesEmpty');
+if (servicesCanvas && serviceData.length > 0) {
+    const pieCtx = servicesCanvas.getContext('2d');
+    const pieColors = ['#e91e7a', '#f06292', '#f8a4b8', '#fcc9d6', '#fce8ef'];
+    new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: serviceData.map(s => s.label + ' (' + s.pct + ')'),
+            datasets: [{
+                data: serviceData.map(s => s.value),
+                backgroundColor: pieColors,
+                borderColor: '#fff',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10,
+                        font: { size: 11, family: 'Inter' },
+                        color: '#5a2035',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#fff',
+                    titleColor: '#1a0a10',
+                    bodyColor: '#5a2035',
+                    borderColor: '#f0d0da',
+                    borderWidth: 1,
                     padding: 10,
-                    font: { size: 11, family: 'Inter' },
-                    color: '#5a2035',
-                    usePointStyle: true,
-                    pointStyle: 'circle',
+                    callbacks: {
+                        label: ctx => ctx.label + ': ' + ctx.parsed + ' bookings'
+                    }
                 }
             },
-            tooltip: {
-                backgroundColor: '#fff',
-                titleColor: '#1a0a10',
-                bodyColor: '#5a2035',
-                borderColor: '#f0d0da',
-                borderWidth: 1,
-                padding: 10,
-                callbacks: {
-                    label: ctx => ctx.label + ': ' + ctx.parsed + ' bookings'
-                }
-            }
-        },
-        cutout: '60%',
-    }
-});
+            cutout: '60%',
+        }
+    });
+} else if (servicesCanvas && servicesEmpty) {
+    servicesCanvas.hidden = true;
+    servicesEmpty.hidden = false;
+}
 
 // ── Overview Bar Chart ──
 const barCtx = document.getElementById('overviewBarChart').getContext('2d');

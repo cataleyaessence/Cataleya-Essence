@@ -848,3 +848,424 @@ body {
 .btn-submit:hover {
     background: #c9166f;
 }
+
+/* Analytics visual refresh */
+.analytics-page {
+    background:
+        radial-gradient(circle at 93% 4%, rgba(244, 111, 164, 0.14), transparent 24rem),
+        linear-gradient(180deg, #fff8fb 0%, #fff4f8 100%);
+}
+
+.analytics-page .main {
+    max-width: 1540px;
+    padding: 32px 32px 48px;
+}
+
+.analytics-page .main::before {
+    opacity: 0.65;
+}
+
+.analytics-page .page-header {
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 26px;
+}
+
+.page-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 7px;
+    color: var(--pink-accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.analytics-page .page-title {
+    font-size: clamp(26px, 3vw, 34px);
+    letter-spacing: -0.025em;
+    margin-bottom: 6px;
+}
+
+.analytics-page .page-sub {
+    font-size: 13px;
+    max-width: 470px;
+}
+
+.analytics-period {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 205px;
+    padding: 11px 14px;
+    border: 1px solid rgba(233, 30, 122, 0.18);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 10px 24px rgba(111, 24, 62, 0.06);
+}
+
+.analytics-period > i {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 10px;
+    color: var(--pink-accent);
+    background: var(--pink-light);
+}
+
+.analytics-period span,
+.analytics-period strong {
+    display: block;
+}
+
+.analytics-period span {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.analytics-period strong {
+    margin-top: 2px;
+    color: var(--text-dark);
+    font-size: 13px;
+}
+
+.analytics-page .metrics-grid {
+    grid-template-columns: repeat(5, minmax(165px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.analytics-page .metric-card {
+    min-height: 154px;
+    padding: 17px;
+    overflow: hidden;
+    border: 1px solid rgba(111, 24, 62, 0.1);
+    border-radius: 18px;
+    box-shadow: 0 10px 26px rgba(111, 24, 62, 0.055);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analytics-page .metric-card::after {
+    position: absolute;
+    right: -26px;
+    bottom: -36px;
+    width: 106px;
+    height: 106px;
+    border-radius: 50%;
+    background: currentColor;
+    content: '';
+    opacity: 0.055;
+}
+
+.analytics-page .metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 34px rgba(111, 24, 62, 0.1);
+}
+
+.metric-card--appointments { color: #d81b60; }
+.metric-card--confirmed { color: #208a59; }
+.metric-card--completed { color: #5b49c7; }
+.metric-card--cancelled { color: #d85555; }
+.metric-card--revenue { color: #a86418; }
+
+.metric-card-top {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 14px;
+}
+
+.metric-icon {
+    display: grid;
+    width: 33px;
+    height: 33px;
+    place-items: center;
+    border-radius: 10px;
+    background: color-mix(in srgb, currentColor 11%, white);
+    color: currentColor;
+    font-size: 14px;
+}
+
+.analytics-page .metric-label {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.075em;
+}
+
+.analytics-page .metric-value {
+    position: relative;
+    z-index: 1;
+    color: var(--text-dark);
+    font-size: clamp(25px, 2.2vw, 31px);
+    letter-spacing: -0.025em;
+}
+
+.analytics-page .metric-change {
+    position: relative;
+    z-index: 1;
+    margin-top: 9px;
+    padding: 4px 8px;
+    background: rgba(252, 232, 239, 0.78);
+    font-size: 10.5px;
+}
+
+.analytics-page .top-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.analytics-page .chart-card,
+.analytics-page .staff-card,
+.analytics-page .services-card,
+.analytics-page .overview-card,
+.analytics-page .revenue-card {
+    border: 1px solid rgba(111, 24, 62, 0.1);
+    border-radius: 18px;
+    box-shadow: 0 10px 26px rgba(111, 24, 62, 0.045);
+}
+
+.analytics-page .chart-card {
+    min-height: 316px;
+    padding: 22px 24px 20px;
+}
+
+.analytics-page .chart-header,
+.analytics-page .overview-header {
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.analytics-page .chart-title,
+.analytics-page .staff-card-title,
+.analytics-page .services-card-title,
+.analytics-page .overview-card-title {
+    font-size: 18px;
+    letter-spacing: -0.015em;
+    margin: 0;
+}
+
+.card-subtitle {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.analytics-page .period-tabs {
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff8fb;
+}
+
+.analytics-page .period-tab {
+    padding: 6px 11px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 10.5px;
+}
+
+.analytics-page .period-tab.active {
+    background: var(--pink-accent);
+    box-shadow: 0 3px 9px rgba(233, 30, 122, 0.22);
+}
+
+.analytics-page .chart-wrap {
+    min-height: 230px;
+}
+
+.analytics-page .stats-col {
+    width: auto;
+}
+
+.analytics-page .revenue-card {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    padding: 25px 23px;
+    overflow: hidden;
+    background: linear-gradient(145deg, #fff 0%, #fff1f6 100%);
+}
+
+.analytics-page .revenue-arrow {
+    right: 19px;
+    top: 18px;
+    color: var(--pink-accent);
+    font-size: 18px;
+}
+
+.analytics-page .revenue-amount {
+    margin-top: 26px;
+    color: var(--text-dark);
+    font-size: clamp(31px, 3.2vw, 42px);
+    letter-spacing: -0.03em;
+}
+
+.analytics-page .revenue-label {
+    font-size: 12px;
+}
+
+.analytics-page .revenue-badge {
+    align-self: flex-start;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid rgba(233, 30, 122, 0.13);
+}
+
+.analytics-page .staff-services-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.analytics-page .stats-col[hidden],
+.analytics-page .staff-card[hidden] {
+    display: none !important;
+}
+
+.analytics-page .staff-card,
+.analytics-page .services-card,
+.analytics-page .overview-card {
+    padding: 22px 24px;
+}
+
+.panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.panel-heading-icon {
+    display: grid;
+    width: 33px;
+    height: 33px;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--pink-light);
+    color: var(--pink-accent);
+    font-size: 14px;
+}
+
+.analytics-page .staff-row {
+    gap: 10px;
+    padding: 11px 0;
+}
+
+.analytics-page .staff-avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #fce8ef, #f8d0dc);
+}
+
+.analytics-page .staff-bar-wrap {
+    height: 6px;
+    margin: 0 8px;
+    background: #f9e7ef;
+}
+
+.analytics-page .staff-bar {
+    background: linear-gradient(90deg, #ee5f9e, #d91670);
+}
+
+.analytics-page .services-chart-wrap {
+    height: 245px;
+}
+
+.analytics-empty {
+    display: grid;
+    min-height: 112px;
+    place-items: center;
+    margin: 0;
+    padding: 18px;
+    border: 1px dashed rgba(233, 30, 122, 0.24);
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.services-chart-wrap .analytics-empty {
+    height: 100%;
+}
+
+.services-chart-wrap canvas[hidden] {
+    display: none !important;
+}
+
+.analytics-page .overview-chart-wrap {
+    height: 200px;
+}
+
+.analytics-page .overview-card {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1180px) {
+    .analytics-page .metrics-grid {
+        grid-template-columns: repeat(3, minmax(165px, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .analytics-page .top-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-page .revenue-card {
+        min-height: 205px;
+    }
+}
+
+@media (max-width: 768px) {
+    .analytics-page .main {
+        padding: 22px 16px 32px;
+    }
+
+    .analytics-page .page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .analytics-page .metrics-grid {
+        grid-template-columns: repeat(2, minmax(145px, 1fr));
+    }
+
+    .analytics-page .chart-header,
+    .analytics-page .overview-header {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .analytics-page .metrics-grid,
+    .analytics-page .staff-services-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-page .chart-card,
+    .analytics-page .staff-card,
+    .analytics-page .services-card,
+    .analytics-page .overview-card {
+        padding: 18px;
+    }
+
+    .analytics-page .period-tabs {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+}
