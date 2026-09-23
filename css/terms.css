@@ -692,3 +692,19 @@ button {
         padding: 4px 14px;
     }
 }
+
+/* Terms uses a compact public navigation, so keep its links visible on mobile. */
+@media (max-width: 720px) {
+    .navbar__links {
+        position: static;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+}

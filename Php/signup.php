@@ -69,14 +69,14 @@
                 <div class="terms-checkbox">
                     <input type="checkbox" id="terms" name="terms" required />
                     <label for="terms">
-                        I agree to the <a href="#">Terms &amp; Conditions</a>.
+                        I agree to the <a href="terms.php" target="_blank" rel="noopener">Terms &amp; Conditions</a>.
                     </label>
                 </div>
 
                 <div class="terms-checkbox">
                     <input type="checkbox" id="privacy_policy" name="privacy_policy" required />
                     <label for="privacy_policy">
-                        I agree to the <a href="#">Privacy Policy</a>.
+                        I agree to the <a href="PrivacyPolicy.php" target="_blank" rel="noopener">Privacy Policy</a>.
                     </label>
                 </div>
 
@@ -160,18 +160,18 @@
                     </div>
                 </div>
 
-                <h2 class="verify-title">Terms & Conditions</h2>
-                <p class="verify-subtitle">Please review our Terms & Conditions and Privacy Policy before creating your account.</p>
+                <h2 class="verify-title">Confirm your agreement</h2>
+                <p class="verify-subtitle">Create your account only after reviewing the full Terms and Privacy Policy.</p>
 
                 <div class="terms-content" style="max-height: 320px; overflow-y: auto; margin-bottom: 24px; color: var(--text-muted); font-size: 14px; line-height: 1.7;">
-                    <p>By creating an account, you agree to our Terms & Conditions and Privacy Policy. Please read them carefully before proceeding.</p>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam.</p>
-                    <p>Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris.</p>
+                    <p>This is a short account-creation confirmation, not a duplicate copy of the Terms.</p>
+                    <p>Please review the complete <a href="terms.php" target="_blank" rel="noopener">Terms &amp; Conditions</a> for booking, downpayment, rescheduling, cancellation, and rewards rules.</p>
+                    <p>Read the <a href="PrivacyPolicy.php" target="_blank" rel="noopener">Privacy Policy</a> to understand how your account and booking information is handled.</p>
                 </div>
 
                 <div id="termsMessage" class="auth-message"></div>
 
-                <button class="verify-continue" id="termsAcceptBtn">Accept</button>
+                <button class="verify-continue" id="termsAcceptBtn">I Agree &amp; Continue</button>
                 <button class="verify-continue" id="termsDeclineBtn" style="margin-top: 12px; background: var(--border-soft); color: var(--text-heading);">Decline</button>
             </div>
         </div>

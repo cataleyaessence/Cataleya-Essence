@@ -1,0 +1,168 @@
+/* Shared customer footer — visually identical to the Php/home footer. */
+.footer {
+    background: #ff93b6;
+    margin-top: auto;
+}
+
+.footer__main {
+    display: grid;
+    grid-template-columns: 220px 1fr 1fr;
+    gap: 48px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 48px 32px;
+    align-items: start;
+}
+
+.footer__logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.footer__logo-img {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
+.footer__logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.footer__logo-name {
+    color: #000;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.footer__logo-sub {
+    color: #777;
+    font-size: 0.7rem;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.footer__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.footer__nav a {
+    color: #000;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.25s ease;
+}
+
+.footer__nav a:hover { opacity: 0.75; }
+
+.footer__col-title {
+    margin: 0 0 16px;
+    color: #000;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.footer__hours,
+.footer__contact {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.footer__hours {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.footer__hours li {
+    display: flex;
+    gap: 16px;
+    color: #000;
+    font-size: 0.84rem;
+}
+
+.footer__hours .day {
+    min-width: 90px;
+    font-weight: 400;
+}
+
+.footer__hours .time {
+    font-weight: 400;
+    opacity: 0.92;
+}
+
+.footer__contact {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.footer__contact li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #000;
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+
+.footer .contact-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #000;
+    text-align: center;
+}
+
+.footer__contact a {
+    color: #000;
+    text-decoration: none;
+    transition: opacity 0.25s ease;
+}
+
+.footer__contact a:hover { opacity: 0.75; }
+
+.footer__bottom {
+    padding: 10px 48px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    text-align: center;
+}
+
+.footer__bottom p {
+    max-width: 1280px;
+    margin: 0 auto;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.75rem;
+}
+
+@media (max-width: 860px) {
+    .footer__main {
+        grid-template-columns: 1fr 1fr;
+        gap: 36px;
+        padding: 36px 28px 28px;
+    }
+
+    .footer__col--brand { grid-column: 1 / -1; }
+}
+
+@media (max-width: 560px) {
+    .footer__main {
+        grid-template-columns: 1fr;
+        padding: 32px 20px 24px;
+    }
+
+    .footer__bottom { padding: 10px 20px; }
+}

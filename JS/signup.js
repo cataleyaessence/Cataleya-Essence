@@ -243,6 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        if (!terms) {
+            messageEl.className = 'auth-message error';
+            messageEl.textContent = 'You must agree to the Terms & Conditions.';
+            messageEl.style.display = 'block';
+            return;
+        }
+
         if (!privacyPolicy) {
             messageEl.className = 'auth-message error';
             messageEl.textContent = 'You must agree to the Privacy Policy.';

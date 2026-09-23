@@ -280,6 +280,10 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.setItem('bookingDateTime', JSON.stringify({
                 date: formatDateLong(selectedDate),
                 dateShort: dateStr,
+                // Keep the local calendar day in a database-safe format. Do not
+                // rely on UTC conversion because it can turn a PH date into the
+                // previous day.
+                dateISO: formatDateForAPI(selectedDate),
                 time: timeStr,
                 timeKey: selectedTime,
                 slotId: selectedTime,

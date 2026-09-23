@@ -86,22 +86,44 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ─── FORMAT DATE FOR DATABASE ─────────────────────────────
     function formatDateForDB(dateString) {
-        // Parse various date formats and convert to YYYY-MM-DD
-        const date = new Date(dateString);
-        if (isNaN(date)) {
-            // Try to extract date parts from strings like "Monday, July 27 2026"
-            const parts = dateString.match(/(\w+)\s+(\w+)\s+(\d+),?\s+(\d+)/);
-            if (parts) {
-                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                                   'July', 'August', 'September', 'October', 'November', 'December'];
-                const monthIndex = monthNames.indexOf(parts[2]);
-                if (monthIndex !== -1) {
-                    return `${parts[4]}-${String(monthIndex + 1).padStart(2, '0')}-${String(parts[3]).padStart(2, '0')}`;
-                }
-            }
-            return dateString;
+        // Preserve the calendar day entered by the customer. Converting a local
+        // Date to ISO/UTC here caused Philippine dates to save one day earlier.
+        const value = String(dateString || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return value;
         }
-        return date.toISOString().split('T')[0];
+
+        const numericParts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (numericParts) {
+            return `${numericParts[3]}-${String(numericParts[1]).padStart(2, '0')}-${String(numericParts[2]).padStart(2, '0')}`;
+        }
+
+        const namedParts = value.match(/(?:\w+,\s*)?(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
+        if (namedParts) {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthIndex = monthNames.indexOf(namedParts[1]);
+            if (monthIndex !== -1) {
+                return `${namedParts[3]}-${String(monthIndex + 1).padStart(2, '0')}-${String(namedParts[2]).padStart(2, '0')}`;
+            }
+        }
+
+        const localDate = new Date(value);
+        if (Number.isNaN(localDate.getTime())) {
+            return '';
+        }
+        return `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+    }
+
+    function normalizePhilippineMobile(phoneValue) {
+        const digits = String(phoneValue || '').replace(/\D/g, '');
+        if (/^09\d{9}$/.test(digits)) {
+            return `+63${digits.slice(1)}`;
+        }
+        if (/^639\d{9}$/.test(digits)) {
+            return `+${digits}`;
+        }
+        return '';
     }
 
     // ─── FORMAT TIME FOR DATABASE ─────────────────────────────
@@ -170,11 +192,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Please enter a valid email address.');
                 return;
             }
-            const phoneDigits = phone.replace(/\D/g, '');
-            if (phoneDigits.length < 7) {
-                alert('Please enter a valid contact number (at least 7 digits).');
+            const normalizedPhone = normalizePhilippineMobile(phone);
+            if (!normalizedPhone) {
+                alert('Please enter a valid Philippine mobile number (09XXXXXXXXX or +639XXXXXXXXX).');
                 return;
             }
+            document.getElementById('phone').value = normalizedPhone;
 
             // Transition
             step1.style.display = 'none';
@@ -367,21 +390,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            bookingSubmissionInProgress = true;
             const fullName = document.getElementById('fullName').value.trim();
             const email = document.getElementById('email').value.trim();
             const phone = document.getElementById('phone').value.trim();
             const requests = document.getElementById('requests').value.trim();
 
+            const normalizedPhone = normalizePhilippineMobile(phone);
+            if (!normalizedPhone) {
+                alert('Please enter a valid Philippine mobile number (09XXXXXXXXX or +639XXXXXXXXX).');
+                return;
+            }
+            document.getElementById('phone').value = normalizedPhone;
+
+            bookingSubmissionInProgress = true;
+
             const bookingDataPayload = {
                 full_name: fullName,
                 email: email,
-                phone: phone,
+                phone: normalizedPhone,
                 special_requests: requests,
                 service_name: bookingData.service?.name || 'Celebrity Drip',
                 service_id: bookingData.service?.id || 0,
                 service_price: parseFloat(servicePrice.replace(/[₱,]/g, '')),
-                booking_date: formatDateForDB(dateDisplay),
+                booking_date: bookingData.dateTime?.dateISO || formatDateForDB(dateDisplay),
                 booking_time: formatTimeForDB(timeDisplay),
                 staff_id: bookingData.therapist?.id || null
             };

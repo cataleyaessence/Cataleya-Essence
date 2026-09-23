@@ -40,6 +40,7 @@ if (count($name_parts) >= 2) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <!-- external CSS -->
     <link rel="stylesheet" href="../css/Calendar service.css" />
+    <link rel="stylesheet" href="../css/user-footer.css" />
 </head>
 <body>
     <header class="navbar">
@@ -153,7 +154,8 @@ if (count($name_parts) >= 2) {
                 </div>
                 <nav class="footer__nav">
                     <a href="contact.php">Contact</a>
-                    <a href="terms.php">Terms and Condition</a>
+                    <a href="faq.php">FAQs</a>
+                    <a href="terms.php">Terms &amp; Conditions</a>
                     <a href="PrivacyPolicy.php">Privacy Policy</a>
                 </nav>
             </div>

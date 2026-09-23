@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['boo
 }
 
 $stmt = $pdo->prepare(
-    "SELECT b.id, b.booking_date, b.booking_time, b.status, b.total_amount, b.notes,
+    "SELECT b.id, b.booking_date, b.booking_time, b.status, b.total_amount, b.notes, b.updated_at,
             u.full_name AS customer_name, u.email AS customer_email,
             s.name AS service_name, s.duration_minutes,
             st.full_name AS staff_name
@@ -127,6 +127,31 @@ foreach ($statusStmt->fetchAll() as $row) {
     }
 }
 $activeBookingCount = $statusCounts['confirmed'] + $statusCounts['rescheduled'];
+
+// Lightweight state used by the admin page to detect a customer booking or a
+// status change without repeatedly reloading the full booking list.
+$bookingSnapshot = array_map(static function (array $booking): array {
+    return [
+        'id' => (int) $booking['id'],
+        'date' => (string) $booking['booking_date'],
+        'time' => (string) $booking['booking_time'],
+        'status' => (string) $booking['status'],
+        'updated_at' => (string) $booking['updated_at'],
+    ];
+}, $bookings);
+$bookingSnapshotSignature = hash('sha256', json_encode($bookingSnapshot));
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['action'] ?? '') === 'snapshot')) {
+    header('Content-Type: application/json');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    echo json_encode([
+        'success' => true,
+        'signature' => $bookingSnapshotSignature,
+        'booking_count' => $bookingCount,
+        'active_count' => $activeBookingCount,
+    ]);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -143,7 +168,7 @@ $activeBookingCount = $statusCounts['confirmed'] + $statusCounts['rescheduled'];
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
-<body>
+<body data-booking-snapshot="<?php echo htmlspecialchars($bookingSnapshotSignature, ENT_QUOTES, 'UTF-8'); ?>">
     <header class="navbar">
         <div class="navbar-brand">
             <div class="navbar-logo">
@@ -219,6 +244,7 @@ $activeBookingCount = $statusCounts['confirmed'] + $statusCounts['rescheduled'];
                     <div>
                         <h2>Bookings</h2>
                         <p>Manage confirmed, rescheduled, completed, and canceled appointments.</p>
+                        <p class="booking-live-status" id="bookingLiveStatus"><i class="fas fa-circle-dot"></i> Live updates are on.</p>
                     </div>
                 </div>
                 <div class="booking-filter-bar">

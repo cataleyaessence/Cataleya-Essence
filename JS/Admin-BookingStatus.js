@@ -10,8 +10,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var filterButtons = document.querySelectorAll('.filter-button');
     var bookingItems = document.querySelectorAll('.previous-booking-item');
     var noBookingsMessage = document.querySelector('.no-bookings-message');
+    var filterStorageKey = 'cataleya-admin-booking-status-filter';
 
-    if (!filterButtons.length || !bookingItems.length || !noBookingsMessage) {
+    if (!filterButtons.length || !noBookingsMessage) {
+        startLiveBookingUpdates();
         return;
     }
 
@@ -40,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             var status = button.getAttribute('data-status');
+            sessionStorage.setItem(filterStorageKey, status);
             applyStatusFilter(status);
         });
     });
@@ -54,11 +57,15 @@ document.addEventListener('DOMContentLoaded', function () {
             summaryCards.forEach(function (summaryCard) {
                 summaryCard.classList.toggle('active', summaryCard === card);
             });
+            sessionStorage.setItem(filterStorageKey, status);
             applyStatusFilter(status);
         });
     });
 
-    var defaultStatus = 'all';
+    var savedStatus = sessionStorage.getItem(filterStorageKey);
+    var defaultStatus = Array.from(filterButtons).some(function (button) {
+        return button.getAttribute('data-status') === savedStatus;
+    }) ? savedStatus : 'all';
     var defaultButton = Array.from(filterButtons).find(function (btn) {
         return btn.getAttribute('data-status') === defaultStatus;
     }) || filterButtons[0];
@@ -70,4 +77,49 @@ document.addEventListener('DOMContentLoaded', function () {
         card.classList.remove('active');
     });
     applyStatusFilter(defaultStatus);
+
+    startLiveBookingUpdates();
+
+    function startLiveBookingUpdates() {
+        var snapshotSignature = document.body.getAttribute('data-booking-snapshot') || '';
+        var liveStatus = document.getElementById('bookingLiveStatus');
+        var isPolling = false;
+
+        window.setInterval(async function () {
+            if (document.hidden || isPolling) {
+                return;
+            }
+
+            isPolling = true;
+            if (liveStatus) {
+                liveStatus.classList.add('is-connecting');
+            }
+
+            try {
+                var response = await fetch('Admin-BookingStatus.php?action=snapshot', {
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+                var data = await response.json();
+
+                if (data.success && data.signature && snapshotSignature && data.signature !== snapshotSignature) {
+                    window.location.reload();
+                    return;
+                }
+                if (data.success && data.signature) {
+                    snapshotSignature = data.signature;
+                }
+            } catch (error) {
+                // Keep the existing admin page usable if a temporary network
+                // problem prevents a background update check.
+                console.warn('Live booking update check failed.', error);
+            } finally {
+                isPolling = false;
+                if (liveStatus) {
+                    liveStatus.classList.remove('is-connecting');
+                }
+            }
+        }, 5000);
+    }
 });

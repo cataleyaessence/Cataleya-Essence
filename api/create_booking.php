@@ -88,6 +88,19 @@ if (!empty($missing)) {
     exit;
 }
 
+// A booking confirmation must contain a real Philippine mobile number.
+// Accept common formatting, then store one normalized E.164-style value.
+$phoneDigits = preg_replace('/\D+/', '', (string) $phone);
+if (preg_match('/^09\d{9}$/', $phoneDigits)) {
+    $phone = '+63' . substr($phoneDigits, 1);
+} elseif (preg_match('/^639\d{9}$/', $phoneDigits)) {
+    $phone = '+' . $phoneDigits;
+} else {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => 'Enter a valid Philippine mobile number: 09XXXXXXXXX or +639XXXXXXXXX.']);
+    exit;
+}
+
 // Accept only a valid future calendar date and an active appointment time slot.
 // Resolving the slot here keeps the booking time and daily availability in sync.
 $dateObject = DateTime::createFromFormat('Y-m-d', $booking_date);
@@ -129,6 +142,11 @@ $discounted_amount = round($base_price * (100 - $discount_rate) / 100, 2);
 
 try {
     $pdo->beginTransaction();
+
+    // Keep the verified mobile number available in the customer's profile and
+    // in the booking-confirmation record/email that is assembled below.
+    $phoneUpdateStmt = $pdo->prepare('UPDATE users SET phone = ? WHERE id = ?');
+    $phoneUpdateStmt->execute([$phone, $user_id]);
 
     // Lock the selected slot before creating the booking. This prevents a fast
     // double-click (or repeated request) from reserving the same slot twice.

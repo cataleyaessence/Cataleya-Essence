@@ -40,6 +40,7 @@ if (count($name_parts) >= 2) {
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="../css/about.css" />
+    <link rel="stylesheet" href="../css/user-footer.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
 
@@ -180,7 +181,8 @@ if (count($name_parts) >= 2) {
                 </div>
                 <nav class="footer__nav">
                     <a href="contact.php">Contact</a>
-                    <a href="terms.php">Terms and Condition</a>
+                    <a href="faq.php">FAQs</a>
+                    <a href="terms.php">Terms &amp; Conditions</a>
                     <a href="PrivacyPolicy.php">Privacy Policy</a>
                 </nav>
             </div>

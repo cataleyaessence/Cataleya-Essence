@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 dateTime: {
                     date: bookingDateTime.date || '',
+                    dateISO: bookingDateTime.dateISO || '',
                     time: bookingDateTime.time || ''
                 },
                 therapist: {

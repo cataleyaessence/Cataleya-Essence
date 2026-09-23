@@ -1,1 +1,0 @@
-user_id|i:5;full_name|s:13:"Administrator";email|s:27:"cataleyaessence23@gmail.com";is_admin|b:1;admin_logged_in|b:1;admin_id|i:5;admin_email|s:27:"cataleyaessence23@gmail.com";staff_csrf_token|s:64:"6ab84bce779fe2eb59a910b6deca74c424eccd6caa9b7df1f93e7c5066126349";service_csrf_token|s:64:"79d36318bfcdf866567fa24c14d234c99ee4e136924205f948527d4e3ea40dd5";

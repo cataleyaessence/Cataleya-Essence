@@ -1,0 +1,46 @@
+:root {
+    --faq-pink: #e91e8c;
+    --faq-berry: #7a1450;
+    --faq-ink: #321d2a;
+    --faq-muted: #78636f;
+    --faq-line: #f1d8e5;
+    --faq-bg: #fff6fa;
+    --faq-card: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-height: 100vh; color: var(--faq-ink); background: radial-gradient(circle at 8% 8%, rgba(233, 30, 140, 0.14), transparent 21rem), var(--faq-bg); font-family: 'DM Sans', system-ui, sans-serif; }
+a { color: inherit; }
+.navbar { display: flex; align-items: center; justify-content: space-between; gap: 28px; min-height: 68px; padding: 12px clamp(20px, 5vw, 64px); background: rgba(255, 246, 250, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(185, 22, 109, 0.08); }
+.navbar__logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo-img { width: 42px; height: 42px; border-radius: 11px; object-fit: cover; }
+.logo-text { display: grid; line-height: 1.12; }
+.logo-name { color: var(--faq-ink); font-size: 0.9rem; font-weight: 800; }
+.logo-sub { color: var(--faq-muted); font-size: 0.72rem; }
+.navbar__links { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(14px, 3vw, 32px); }
+.nav-link { color: #654552; font-size: 0.9rem; font-weight: 700; text-decoration: none; }
+.nav-link:hover, .nav-link.active { color: var(--faq-pink); }
+.faq-page { width: min(920px, calc(100% - 40px)); margin: 0 auto; padding: 66px 0 4px; }
+.faq-hero { max-width: 680px; margin: 0 auto 32px; text-align: center; }
+.eyebrow { margin: 0 0 12px; color: var(--faq-pink); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.eyebrow i { margin-right: 6px; }
+.faq-hero h1 { margin: 0; color: var(--faq-ink); font-family: 'DM Serif Display', Georgia, serif; font-size: clamp(2.2rem, 7vw, 3.75rem); font-weight: 400; letter-spacing: -0.03em; }
+.faq-hero > p:last-child { margin: 14px auto 0; color: var(--faq-muted); font-size: 1rem; line-height: 1.65; }
+.faq-list { display: grid; gap: 12px; }
+.faq-list details { overflow: hidden; background: var(--faq-card); border: 1px solid var(--faq-line); border-radius: 16px; box-shadow: 0 8px 22px rgba(80, 31, 56, 0.05); }
+.faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; color: var(--faq-ink); cursor: pointer; font-size: 0.98rem; font-weight: 800; list-style: none; }
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary i { color: var(--faq-pink); font-size: 0.9rem; transition: transform 0.2s ease; }
+.faq-list details[open] summary { color: var(--faq-berry); border-bottom: 1px solid var(--faq-line); }
+.faq-list details[open] summary i { transform: rotate(45deg); }
+.faq-list details p { max-width: 790px; margin: 0; padding: 17px 22px 21px; color: var(--faq-muted); font-size: 0.94rem; line-height: 1.75; }
+.faq-list details p a { color: var(--faq-berry); font-weight: 800; }
+.faq-help-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 32px 0 0; padding: 22px 24px; background: linear-gradient(125deg, #7a1450, #c81870); border-radius: 18px; color: #fff; box-shadow: 0 14px 28px rgba(122, 20, 80, 0.18); }
+.faq-help-card div { display: grid; grid-template-columns: 28px 1fr; column-gap: 10px; align-items: center; }
+.faq-help-card div > i { grid-row: 1 / span 2; color: #ffd2e6; font-size: 1.15rem; text-align: center; }
+.faq-help-card strong { font-size: 0.98rem; }
+.faq-help-card span { color: rgba(255,255,255,0.78); font-size: 0.82rem; line-height: 1.45; }
+.faq-help-card > a { flex: 0 0 auto; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.45); border-radius: 999px; color: #fff; font-size: 0.84rem; font-weight: 800; text-decoration: none; }
+.faq-help-card > a i { margin-left: 6px; }
+@media (max-width: 640px) { .navbar { align-items: flex-start; flex-direction: column; gap: 12px; } .navbar__links { gap: 14px 20px; } .faq-page { width: min(100% - 32px, 920px); padding-top: 42px; } .faq-list summary { padding: 18px; font-size: 0.92rem; } .faq-list details p { padding: 16px 18px 20px; font-size: 0.9rem; } .faq-help-card { align-items: flex-start; flex-direction: column; } }

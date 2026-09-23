@@ -1,34 +1,43 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: signin.php');
+$isRenderedFromRootIndex = defined('CATELYA_RENDER_HOME_FROM_INDEX');
+$isGuestHomePreview = $isRenderedFromRootIndex && empty($_SESSION['user_id']);
+
+if (!$isGuestHomePreview && !isset($_SESSION['user_id'])) {
+    header('Location: ' . ($isRenderedFromRootIndex ? 'Php/signin.php' : 'signin.php'));
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = $isGuestHomePreview ? null : (int) $_SESSION['user_id'];
+$user = null;
+$full_name = 'Guest';
+$email = '';
+$initials = 'G';
 
-// Fetch user data from database
-$stmt = $pdo->prepare("SELECT id, full_name, email, profile_photo FROM users WHERE id = ?");
-$stmt->execute([$user_id]);
-$user = $stmt->fetch();
+if (!$isGuestHomePreview) {
+    // Fetch user data from database
+    $stmt = $pdo->prepare("SELECT id, full_name, email, profile_photo FROM users WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch();
 
-if (!$user) {
-    header('Location: signin.php');
-    exit;
-}
+    if (!$user) {
+        header('Location: ' . ($isRenderedFromRootIndex ? 'Php/signin.php' : 'signin.php'));
+        exit;
+    }
 
-$full_name = $user['full_name'];
-$email = $user['email'];
+    $full_name = $user['full_name'];
+    $email = $user['email'];
 
-// Build initials for the profile avatar (e.g. "Neil Ivan" -> "NI")
-$name_parts = array_filter(explode(' ', trim($full_name)));
-if (count($name_parts) >= 2) {
-    $initials = strtoupper(substr(reset($name_parts), 0, 1) . substr(end($name_parts), 0, 1));
-} elseif (count($name_parts) === 1) {
-    $initials = strtoupper(substr(reset($name_parts), 0, 2));
-} else {
-    $initials = 'U';
+    // Build initials for the profile avatar (e.g. "Neil Ivan" -> "NI")
+    $name_parts = array_filter(explode(' ', trim($full_name)));
+    if (count($name_parts) >= 2) {
+        $initials = strtoupper(substr(reset($name_parts), 0, 1) . substr(end($name_parts), 0, 1));
+    } elseif (count($name_parts) === 1) {
+        $initials = strtoupper(substr(reset($name_parts), 0, 2));
+    } else {
+        $initials = 'U';
+    }
 }
 
 // Fetch Hall of Fame data - top users by points and visits
@@ -71,25 +80,27 @@ $stmt = $pdo->prepare("SELECT id, slot_time, display_time, is_active FROM time_s
 $stmt->execute();
 $time_slots = $stmt->fetchAll();
 
-// Fetch user's bookings for the current month
-$stmt = $pdo->prepare("
-    SELECT b.booking_date, b.booking_time, b.status, s.name as service_name
-    FROM bookings b
-    JOIN services s ON b.service_id = s.id
-    WHERE b.user_id = ? AND b.booking_date >= ? AND b.booking_date <= ?
-    ORDER BY b.booking_date, b.booking_time
-");
-$stmt->execute([$user_id, $first_day->format('Y-m-d'), $last_day->format('Y-m-d')]);
-$user_bookings = $stmt->fetchAll();
-
-// Create a map of booking dates for easy lookup
 $booking_dates = [];
-foreach ($user_bookings as $booking) {
-    $date = $booking['booking_date'];
-    if (!isset($booking_dates[$date])) {
-        $booking_dates[$date] = [];
+if ($user_id) {
+    // Fetch the signed-in user's bookings for the current month.
+    $stmt = $pdo->prepare("
+        SELECT b.booking_date, b.booking_time, b.status, s.name as service_name
+        FROM bookings b
+        JOIN services s ON b.service_id = s.id
+        WHERE b.user_id = ? AND b.booking_date >= ? AND b.booking_date <= ?
+        ORDER BY b.booking_date, b.booking_time
+    ");
+    $stmt->execute([$user_id, $first_day->format('Y-m-d'), $last_day->format('Y-m-d')]);
+    $user_bookings = $stmt->fetchAll();
+
+    // Create a map of booking dates for easy lookup.
+    foreach ($user_bookings as $booking) {
+        $date = $booking['booking_date'];
+        if (!isset($booking_dates[$date])) {
+            $booking_dates[$date] = [];
+        }
+        $booking_dates[$date][] = $booking;
     }
-    $booking_dates[$date][] = $booking;
 }
 
 // Get availability for a specific date (today or next available)
@@ -109,8 +120,12 @@ $selected_date_slots = $stmt->fetchAll();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <?php if ($isRenderedFromRootIndex): ?>
+  <base href="Php/" />
+  <?php endif; ?>
   <title>Cataleya Essence of Beauty</title>
   <link rel="stylesheet" href="../css/home.css" />
+  <link rel="stylesheet" href="../css/user-footer.css" />
   <link rel="icon" href="../img/Rectangle 38 (1).png" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -135,6 +150,9 @@ $selected_date_slots = $stmt->fetchAll();
       <a href="Rewards.php" class="nav-link">Rewards</a>
     </nav>
 
+    <?php if ($isGuestHomePreview): ?>
+    <a href="signin.php" class="btn-book">Sign in</a>
+    <?php else: ?>
     <!-- ====== PROFILE AVATAR + DROPDOWN ====== -->
     <div class="profile-wrapper" id="profileWrapper">
         <div class="profile-avatar" id="profileAvatar" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User menu">
@@ -155,6 +173,7 @@ $selected_date_slots = $stmt->fetchAll();
             </a>
         </div>
     </div>
+    <?php endif; ?>
 
     <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -471,7 +490,8 @@ $selected_date_slots = $stmt->fetchAll();
               </div>
               <nav class="footer__nav">
                   <a href="contact.php">Contact</a>
-                  <a href="terms.php">Terms and Condition</a>
+                  <a href="faq.php">FAQs</a>
+                  <a href="terms.php">Terms &amp; Conditions</a>
                   <a href="PrivacyPolicy.php">Privacy Policy</a>
               </nav>
           </div>

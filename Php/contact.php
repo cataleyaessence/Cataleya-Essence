@@ -7,25 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="../css/contact.css" />
+    <link rel="stylesheet" href="../css/user-navbar.css" />
+    <link rel="stylesheet" href="../css/user-footer.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
 <body>
 
-    <!-- ========== NAVBAR ========== -->
-    <header class="navbar">
-        <div class="navbar__logo">
-            <img src="../img/Rectangle 38 (1).png" class="logo-img" alt="Cataleya Essence of Beauty" />
-            <div class="logo-text">
-                <span class="logo-name">Cataleya Essence</span>
-                <span class="logo-sub">of Beauty</span>
-            </div>
-        </div>
-        <nav class="navbar__links" id="nav-links">
-            <a href="home.php" class="nav-link">Home</a>
-            <a href="about.php" class="nav-link">About Us</a>
-            <a href="serv.php" class="nav-link">Services</a>
-        </nav>
-    </header>
+    <?php require __DIR__ . '/includes/user-navbar.php'; ?>
 
     <!-- ========== MAIN CONTENT ========== -->
     <main class="contact-page">
@@ -172,7 +160,8 @@
                 </div>
                 <nav class="footer__nav">
                     <a href="contact.php">Contact</a>
-                    <a href="terms-conditions.php">Terms and Condition</a>
+                    <a href="faq.php">FAQs</a>
+                    <a href="terms.php">Terms &amp; Conditions</a>
                     <a href="PrivacyPolicy.php">Privacy Policy</a>
                 </nav>
             </div>
@@ -215,5 +204,6 @@
     </footer>
 
     <script src="../JS/contact.js"></script>
+    <script src="../JS/user-navbar.js"></script>
 </body>
 </html>

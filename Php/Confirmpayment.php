@@ -41,6 +41,7 @@ if (count($name_parts) >= 2) {
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="../css/Confirmpayment.css" />
+    <link rel="stylesheet" href="../css/user-footer.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
 <body>
@@ -139,7 +140,8 @@ if (count($name_parts) >= 2) {
 
                     <div class="form-group">
                         <label for="phone">Contact Number</label>
-                        <input type="tel" id="phone" placeholder="Enter your contact number" value="<?php echo htmlspecialchars($phone); ?>" required />
+                        <input type="tel" id="phone" placeholder="09XXXXXXXXX or +639XXXXXXXXX" value="<?php echo htmlspecialchars($phone); ?>" inputmode="tel" autocomplete="tel-national" maxlength="13" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" aria-describedby="phoneHelp" required />
+                        <small id="phoneHelp">Use a Philippine mobile number: 09XXXXXXXXX or +639XXXXXXXXX.</small>
                     </div>
 
                     <div class="form-group">
@@ -320,7 +322,8 @@ if (count($name_parts) >= 2) {
                 </div>
                 <nav class="footer__nav">
                     <a href="contact.php">Contact</a>
-                    <a href="terms.php">Terms and Condition</a>
+                    <a href="faq.php">FAQs</a>
+                    <a href="terms.php">Terms &amp; Conditions</a>
                     <a href="PrivacyPolicy.php">Privacy Policy</a>
                 </nav>
             </div>

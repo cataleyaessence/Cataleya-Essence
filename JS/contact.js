@@ -1,17 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
 
     // ─── HAMBURGER MENU ──────────────────────────────────────
-    const hamburger = document.getElementById('hamburger');
-    const navLinks = document.getElementById('nav-links');
-
-    if (hamburger && navLinks) {
-        hamburger.addEventListener('click', function() {
-            this.classList.toggle('active');
-            navLinks.classList.toggle('open');
-            this.setAttribute('aria-expanded', navLinks.classList.contains('open'));
-        });
-    }
-
     // ─── CHARACTER COUNTER ──────────────────────────────────
     const messageField = document.getElementById('message');
     const charCountSpan = document.getElementById('charCount');

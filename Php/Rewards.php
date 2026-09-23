@@ -128,7 +128,8 @@ $remainder = array_slice($hall_of_fame, 3);
 
   <!-- External CSS -->
   <link rel="stylesheet" href="../css/Landingpage.css" />
-  <link rel="stylesheet" href="../css/Rewards.css" />
+    <link rel="stylesheet" href="../css/Rewards.css" />
+    <link rel="stylesheet" href="../css/user-footer.css" />
   <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
 <body>
@@ -385,7 +386,8 @@ $remainder = array_slice($hall_of_fame, 3);
         </div>
         <nav class="footer__nav">
           <a href="contact.php">Contact</a>
-          <a href="terms.php">Terms and Condition</a>
+          <a href="faq.php">FAQs</a>
+          <a href="terms.php">Terms &amp; Conditions</a>
           <a href="PrivacyPolicy.php">Privacy Policy</a>
         </nav>
       </div>

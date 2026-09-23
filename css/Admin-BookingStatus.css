@@ -129,6 +129,24 @@
     margin-top: 16px;
 }
 
+.booking-live-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 8px 0 0;
+    color: #238858;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.booking-live-status .fa-circle-dot {
+    font-size: 9px;
+}
+
+.booking-live-status.is-connecting {
+    color: var(--text-muted);
+}
+
 /* Admin-Serenity_Sched.css makes these cards display:flex. Keep the filter
    state stronger so hidden, non-matching bookings cannot remain visible. */
 .previous-booking-item[hidden],
