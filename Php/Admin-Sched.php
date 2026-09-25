@@ -18,6 +18,44 @@ if (!empty($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date']))
 }
 $displayDate = date('F j, Y', strtotime($currentDate));
 
+// Monthly booking calendar. Past completed and cancelled appointments remain
+// visible as records, while active bookings retain their reserved time slot.
+$calendarMonth = trim((string) ($_GET['calendar_month'] ?? substr($currentDate, 0, 7)));
+if (!preg_match('/^\d{4}-\d{2}$/', $calendarMonth)) {
+    $calendarMonth = date('Y-m', strtotime($currentDate));
+}
+$calendarMonthStart = DateTimeImmutable::createFromFormat('!Y-m', $calendarMonth);
+if (!$calendarMonthStart || $calendarMonthStart->format('Y-m') !== $calendarMonth) {
+    $calendarMonthStart = new DateTimeImmutable('first day of this month');
+    $calendarMonth = $calendarMonthStart->format('Y-m');
+}
+$calendarMonthEnd = $calendarMonthStart->modify('+1 month');
+$previousCalendarMonth = $calendarMonthStart->modify('-1 month');
+$nextCalendarMonth = $calendarMonthStart->modify('+1 month');
+$previousCalendarUrl = 'Admin-Sched.php?' . http_build_query(['calendar_month' => $previousCalendarMonth->format('Y-m')]);
+$nextCalendarUrl = 'Admin-Sched.php?' . http_build_query(['calendar_month' => $nextCalendarMonth->format('Y-m')]);
+$calendarMonthLabel = $calendarMonthStart->format('F Y');
+
+$bookingCalendarStmt = $pdo->prepare(
+    "SELECT b.id, b.booking_date, b.booking_time, b.status,
+            COALESCE(u.full_name, 'Customer') AS customer_name,
+            COALESCE(s.name, 'Service') AS service_name
+     FROM bookings AS b
+     LEFT JOIN users AS u ON u.id = b.user_id
+     LEFT JOIN services AS s ON s.id = b.service_id
+     WHERE b.booking_date >= ? AND b.booking_date < ?
+       AND b.status IN ('confirmed', 'rescheduled', 'completed', 'cancelled')
+     ORDER BY b.booking_date ASC, b.booking_time ASC, b.id ASC"
+);
+$bookingCalendarStmt->execute([$calendarMonthStart->format('Y-m-d'), $calendarMonthEnd->format('Y-m-d')]);
+$bookingCalendarByDate = [];
+foreach ($bookingCalendarStmt->fetchAll() as $calendarBooking) {
+    $bookingCalendarByDate[(string) $calendarBooking['booking_date']][] = $calendarBooking;
+}
+$calendarLeadingDays = (int) $calendarMonthStart->format('w');
+$calendarDaysInMonth = (int) $calendarMonthStart->format('t');
+$calendarCellCount = (int) (ceil(($calendarLeadingDays + $calendarDaysInMonth) / 7) * 7);
+
 // Fetch bookings for the selected date
 $stmt = $pdo->prepare("
     SELECT b.id, b.booking_date, b.booking_time, b.status, b.total_amount, b.notes,
@@ -257,12 +295,65 @@ if ($isAjax) {
                 </div>
             </div>
 
-            <!-- Calendar Card -->
+            <section class="booking-calendar-card" aria-labelledby="bookingCalendarTitle">
+                <div class="booking-calendar-head">
+                    <div>
+                        <p class="calendar-kicker"><i class="fas fa-calendar-days"></i> Customer appointments</p>
+                        <h2 id="bookingCalendarTitle">Booking Calendar</h2>
+                        <p>Upcoming appointments and past booking records by day and time.</p>
+                    </div>
+                    <div class="calendar-month-controls" aria-label="Booking calendar month">
+                        <a href="<?= htmlspecialchars($previousCalendarUrl, ENT_QUOTES, 'UTF-8') ?>" class="calendar-month-button" aria-label="Previous month"><i class="fas fa-chevron-left"></i></a>
+                        <strong><?= htmlspecialchars($calendarMonthLabel, ENT_QUOTES, 'UTF-8') ?></strong>
+                        <a href="<?= htmlspecialchars($nextCalendarUrl, ENT_QUOTES, 'UTF-8') ?>" class="calendar-month-button" aria-label="Next month"><i class="fas fa-chevron-right"></i></a>
+                    </div>
+                </div>
+                <div class="calendar-rule"><i class="fas fa-circle-check"></i> Completed and cancelled bookings remain here as records. Multiple appointments can be on the same day, but each active time slot is reserved for only one user.</div>
+
+                <div class="booking-calendar-scroll">
+                    <div class="booking-calendar-grid" role="grid" aria-label="<?= htmlspecialchars($calendarMonthLabel, ENT_QUOTES, 'UTF-8') ?> bookings">
+                        <?php foreach (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $weekday): ?>
+                            <div class="booking-calendar-weekday" role="columnheader"><?= $weekday ?></div>
+                        <?php endforeach; ?>
+                        <?php for ($cellIndex = 0; $cellIndex < $calendarCellCount; $cellIndex++): ?>
+                            <?php
+                            $cellDate = $calendarMonthStart->modify(sprintf('%+d days', $cellIndex - $calendarLeadingDays));
+                            $cellDateKey = $cellDate->format('Y-m-d');
+                            $isCurrentCalendarMonth = $cellDate->format('Y-m') === $calendarMonth;
+                            $dayBookings = $bookingCalendarByDate[$cellDateKey] ?? [];
+                            ?>
+                            <article class="booking-calendar-day<?= $isCurrentCalendarMonth ? '' : ' outside-month' ?><?= $cellDateKey === date('Y-m-d') ? ' today' : '' ?>" role="gridcell" aria-label="<?= htmlspecialchars($cellDate->format('F j, Y'), ENT_QUOTES, 'UTF-8') ?>">
+                                <time class="booking-calendar-date" datetime="<?= $cellDateKey ?>"><?= $cellDate->format('j') ?></time>
+                                <?php if ($isCurrentCalendarMonth && $dayBookings): ?>
+                                    <div class="booking-calendar-slots">
+                                        <?php foreach ($dayBookings as $dayBooking): ?>
+                                            <?php
+                                            $bookingTime = date('g:i A', strtotime((string) $dayBooking['booking_time']));
+                                            $bookingStatus = (string) $dayBooking['status'];
+                                            $bookingTitle = trim((string) $dayBooking['customer_name']) . ' — ' . trim((string) $dayBooking['service_name']);
+                                            ?>
+                                            <a href="Admin-Sched.php?date=<?= rawurlencode($cellDateKey) ?>&amp;calendar_month=<?= rawurlencode($calendarMonth) ?>" class="booking-calendar-slot <?= htmlspecialchars($bookingStatus, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($bookingTitle . ' at ' . $bookingTime, ENT_QUOTES, 'UTF-8') ?>">
+                                                <span class="booking-slot-time"><i class="far fa-clock"></i><?= htmlspecialchars($bookingTime, ENT_QUOTES, 'UTF-8') ?></span>
+                                                <span class="booking-slot-customer"><?= htmlspecialchars((string) $dayBooking['customer_name'], ENT_QUOTES, 'UTF-8') ?></span>
+                                                <span class="booking-slot-service"><?= htmlspecialchars((string) $dayBooking['service_name'], ENT_QUOTES, 'UTF-8') ?></span>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php elseif ($isCurrentCalendarMonth): ?>
+                                    <span class="booking-calendar-free">No booking</span>
+                                <?php endif; ?>
+                            </article>
+                        <?php endfor; ?>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Selected Day Timeline -->
             <div class="calendar-card">
                 <div class="calendar-card-intro">
                     <div>
-                        <p class="calendar-card-kicker">Daily appointment timeline</p>
-                        <h2>Schedule board</h2>
+                        <p class="calendar-card-kicker">Selected day timeline</p>
+                        <h2>Day schedule</h2>
                         <p>Select a date to view every booked time slot.</p>
                     </div>
                     <div class="appointment-count" aria-live="polite"><strong id="appointmentCount"><?php echo $appointmentCount; ?></strong><span>appointment<?php echo $appointmentCount === 1 ? '' : 's'; ?></span></div>

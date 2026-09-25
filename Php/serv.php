@@ -73,6 +73,8 @@ function resolveCatalogServiceImage(?string $imagePath): ?string
     $legacyImageReplacements = [
         'eyeliner tattoo.png' => '../img/cat eye look.png',
         'lip blush.png' => '../img/microblading.png',
+        'hilot.png' => '../img/Hilot.png',
+        'ventosa.png' => '../img/Ventosa.png',
     ];
 
     return $legacyImageReplacements[$filename] ?? $imagePath;

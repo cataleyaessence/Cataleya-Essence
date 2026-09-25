@@ -41,7 +41,6 @@ try {
         'Upper up' => '../img/removal upper up.png',
         'Face' => '../img/removal face.png',
         'Underarm' => '../img/removal arms.png',
-        'Arms' => '../img/removal arms.png',
         'Legs' => '../img/removal legs.png',
         'Chest' => '../img/removal chest.png',
         'Brazilian' => '../img/removal brazilian.png',
@@ -53,7 +52,6 @@ try {
         'Melasma' => '../img/melasma.png',
         'Tattoo Removal' => '../img/tattoo removal.png',
         'Double Chin' => '../img/double chin.png',
-        'Arms' => '../img/arms gluta.png',
         'Tummy' => '../img/tummy.png',
         'Thigh' => '../img/thigh.png',
         'Ultra Whitening Drip / Session' => '../img/ultra whitening.png',
@@ -72,19 +70,52 @@ try {
         'Swedish Massage' => '../img/swedish massage.png',
         'Deep Tissue Massage' => '../img/deep tissue massage.png',
         'Aromatherapy Massage' => '../img/aromatherapy massage.png',
-        'Hilot' => '../img/hilot.png',
-        'Ventosa' => '../img/ventosa.png',
+        'Hilot' => '../img/Hilot.png',
+        'Ventosa' => '../img/Ventosa.png',
         'Body Scrub' => '../img/body scrub.png',
         'Body Wrap' => '../img/body wrap.png',
     ];
 
-    // Update services with image URLs
+    // Update services with image URLs. Services named "Arms" exist in two
+    // different sub-categories, so they must be updated with their category
+    // included instead of using a duplicate associative-array key.
     $stmt = $pdo->prepare("UPDATE services SET image_url = ? WHERE name = ?");
     $updated = 0;
 
     foreach ($serviceImages as $serviceName => $imageUrl) {
         $stmt->execute([$imageUrl, $serviceName]);
         if ($stmt->rowCount() > 0) {
+            $updated++;
+        }
+    }
+
+    $scopedServiceImages = [
+        [
+            'name' => 'Arms',
+            'category' => 'Beauty Services',
+            'subCategory' => 'Hair Laser Removal',
+            'image' => '../img/removal arms.png',
+        ],
+        [
+            'name' => 'Arms',
+            'category' => 'Beauty Services',
+            'subCategory' => 'Mesolipo',
+            'image' => '../img/arms gluta.png',
+        ],
+    ];
+    $scopedStmt = $pdo->prepare(
+        'UPDATE services
+         SET image_url = ?
+         WHERE name = ? AND main_category = ? AND sub_category = ?'
+    );
+    foreach ($scopedServiceImages as $service) {
+        $scopedStmt->execute([
+            $service['image'],
+            $service['name'],
+            $service['category'],
+            $service['subCategory'],
+        ]);
+        if ($scopedStmt->rowCount() > 0) {
             $updated++;
         }
     }

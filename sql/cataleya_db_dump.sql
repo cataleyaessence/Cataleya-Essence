@@ -273,7 +273,7 @@ INSERT INTO `services` (`id`, `name`, `description`, `main_category`, `sub_categ
 (22, 'Upper up', NULL, 'Beauty Services', 'Hair Laser Removal', 199.00, 15, '../img/removal upper up.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (23, 'Face', NULL, 'Beauty Services', 'Hair Laser Removal', 299.00, 30, '../img/removal face.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (24, 'Underarm', NULL, 'Beauty Services', 'Hair Laser Removal', 499.00, 30, '../img/removal arms.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
-(25, 'Arms', NULL, 'Beauty Services', 'Hair Laser Removal', 799.00, 45, '../img/arms gluta.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
+(25, 'Arms', NULL, 'Beauty Services', 'Hair Laser Removal', 799.00, 45, '../img/removal arms.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (26, 'Legs', NULL, 'Beauty Services', 'Hair Laser Removal', 899.00, 60, '../img/removal legs.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (27, 'Chest', NULL, 'Beauty Services', 'Hair Laser Removal', 499.00, 30, '../img/removal chest.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (28, 'Brazilian', NULL, 'Beauty Services', 'Hair Laser Removal', 799.00, 45, '../img/removal brazilian.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
@@ -304,8 +304,8 @@ INSERT INTO `services` (`id`, `name`, `description`, `main_category`, `sub_categ
 (53, 'Swedish Massage', NULL, 'Spa Massage', 'Body Care', 999.00, 60, '../img/swedish massage.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (54, 'Deep Tissue Massage', NULL, 'Spa Massage', 'Body Care', 1299.00, 90, '../img/deep tissue massage.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (55, 'Aromatherapy Massage', NULL, 'Spa Massage', 'Body Care', 1199.00, 60, '../img/aromatherapy massage.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
-(56, 'Hilot', NULL, 'Spa Massage', 'Traditional Body Care', 899.00, 60, '../img/hilot.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
-(57, 'Ventosa', NULL, 'Spa Massage', 'Traditional Body Care', 799.00, 45, '../img/ventosa.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
+(56, 'Hilot', NULL, 'Spa Massage', 'Traditional Body Care', 899.00, 60, '../img/Hilot.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
+(57, 'Ventosa', NULL, 'Spa Massage', 'Traditional Body Care', 799.00, 45, '../img/Ventosa.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (58, 'Body Scrub', NULL, 'Spa Massage', 'Body Skin Treatment', 699.00, 45, '../img/body scrub.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33'),
 (59, 'Body Wrap', NULL, 'Spa Massage', 'Body Skin Treatment', 999.00, 60, '../img/body wrap.png', 1, '2026-07-27 05:31:18', '2026-07-30 00:40:33');
 
