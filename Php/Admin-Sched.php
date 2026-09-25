@@ -16,8 +16,6 @@ $currentDate = date('Y-m-d');
 if (!empty($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date'])) {
     $currentDate = $_GET['date'];
 }
-$displayDate = date('F j, Y', strtotime($currentDate));
-
 // Monthly booking calendar. Past completed and cancelled appointments remain
 // visible as records, while active bookings retain their reserved time slot.
 $calendarMonth = trim((string) ($_GET['calendar_month'] ?? substr($currentDate, 0, 7)));
@@ -56,24 +54,6 @@ $calendarLeadingDays = (int) $calendarMonthStart->format('w');
 $calendarDaysInMonth = (int) $calendarMonthStart->format('t');
 $calendarCellCount = (int) (ceil(($calendarLeadingDays + $calendarDaysInMonth) / 7) * 7);
 
-// Fetch bookings for the selected date
-$stmt = $pdo->prepare("
-    SELECT b.id, b.booking_date, b.booking_time, b.status, b.total_amount, b.notes,
-           u.full_name as customer_name, u.email as customer_email,
-           s.name as service_name, s.duration_minutes,
-           st.full_name as staff_name, st.image_url as staff_image,
-           (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE booking_id = b.id AND status = 'completed') AS paid_amount
-    FROM bookings b
-    LEFT JOIN users u ON b.user_id = u.id
-    LEFT JOIN services s ON b.service_id = s.id
-    LEFT JOIN staff st ON b.staff_id = st.id
-    WHERE b.booking_date = ?
-    ORDER BY b.booking_time ASC
-");
-$stmt->execute([$currentDate]);
-$bookings = $stmt->fetchAll();
-$appointmentCount = count($bookings);
-
 // Previous booking pagination
 $previousBookingsLimit = 6;
 $previousBookingsPage = max(0, (int)($_GET['previous_page'] ?? 0));
@@ -101,18 +81,6 @@ $stmt->execute();
 $previousBookingsRaw = $stmt->fetchAll();
 $hasMorePreviousBookings = count($previousBookingsRaw) > $previousBookingsLimit;
 $previousBookings = array_slice($previousBookingsRaw, 0, $previousBookingsLimit);
-
-// Fetch all staff for dropdown
-$stmt = $pdo->query("SELECT id, full_name, category, image_url FROM staff WHERE is_available = 1 AND is_active = 1 ORDER BY full_name");
-$staffList = $stmt->fetchAll();
-
-// Fetch all services for dropdown
-$stmt = $pdo->query("SELECT id, name, price, duration_minutes, main_category FROM services WHERE is_active = 1 ORDER BY name");
-$servicesList = $stmt->fetchAll();
-
-// Fetch time slots
-$stmt = $pdo->query("SELECT slot_time, display_time FROM time_slots WHERE is_active = 1 ORDER BY sort_order");
-$timeSlots = $stmt->fetchAll();
 
 // Handle booking status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
@@ -190,28 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Fetch users for booking creation dropdown
-$stmt = $pdo->query("SELECT id, full_name, email FROM users ORDER BY full_name");
-$usersList = $stmt->fetchAll();
-
-// JSON response for AJAX refresh requests
-$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-if ($isAjax) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-        'currentDate' => $currentDate,
-        'displayDate' => $displayDate,
-        'bookings' => $bookings,
-        'previousBookings' => $previousBookings,
-        'hasMorePreviousBookings' => $hasMorePreviousBookings,
-        'previousBookingsPage' => $previousBookingsPage,
-        'timeSlots' => $timeSlots,
-        'staff' => $staffList,
-        'services' => $servicesList,
-        'users' => $usersList
-    ]);
-    exit();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -227,7 +173,7 @@ if ($isAjax) {
     <link rel="stylesheet" href="../css/admin-sidebar.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
-<body>
+<body class="admin-page">
     <!-- ═══ NAVBAR ═══ -->
     <header class="navbar">
         <div class="navbar-brand">
@@ -308,6 +254,13 @@ if ($isAjax) {
                         <a href="<?= htmlspecialchars($nextCalendarUrl, ENT_QUOTES, 'UTF-8') ?>" class="calendar-month-button" aria-label="Next month"><i class="fas fa-chevron-right"></i></a>
                     </div>
                 </div>
+                <div class="booking-calendar-legend" aria-label="Booking status legend">
+                    <span class="booking-calendar-legend-label">Booking process:</span>
+                    <span class="booking-calendar-legend-item confirmed"><i></i>Confirmed</span>
+                    <span class="booking-calendar-legend-item rescheduled"><i></i>Rescheduled</span>
+                    <span class="booking-calendar-legend-item completed"><i></i>Completed</span>
+                    <span class="booking-calendar-legend-item cancelled"><i></i>Cancelled</span>
+                </div>
                 <div class="calendar-rule"><i class="fas fa-circle-check"></i> Completed and cancelled bookings remain here as records. Multiple appointments can be on the same day, but each active time slot is reserved for only one user.</div>
 
                 <div class="booking-calendar-scroll">
@@ -330,10 +283,17 @@ if ($isAjax) {
                                             <?php
                                             $bookingTime = date('g:i A', strtotime((string) $dayBooking['booking_time']));
                                             $bookingStatus = (string) $dayBooking['status'];
+                                            $bookingStatusLabel = match ($bookingStatus) {
+                                                'rescheduled' => 'Rescheduled',
+                                                'completed' => 'Completed',
+                                                'cancelled' => 'Cancelled',
+                                                default => 'Confirmed',
+                                            };
                                             $bookingTitle = trim((string) $dayBooking['customer_name']) . ' — ' . trim((string) $dayBooking['service_name']);
                                             ?>
                                             <a href="Admin-Sched.php?date=<?= rawurlencode($cellDateKey) ?>&amp;calendar_month=<?= rawurlencode($calendarMonth) ?>" class="booking-calendar-slot <?= htmlspecialchars($bookingStatus, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($bookingTitle . ' at ' . $bookingTime, ENT_QUOTES, 'UTF-8') ?>">
                                                 <span class="booking-slot-time"><i class="far fa-clock"></i><?= htmlspecialchars($bookingTime, ENT_QUOTES, 'UTF-8') ?></span>
+                                                <span class="booking-slot-status"><?= htmlspecialchars($bookingStatusLabel, ENT_QUOTES, 'UTF-8') ?></span>
                                                 <span class="booking-slot-customer"><?= htmlspecialchars((string) $dayBooking['customer_name'], ENT_QUOTES, 'UTF-8') ?></span>
                                                 <span class="booking-slot-service"><?= htmlspecialchars((string) $dayBooking['service_name'], ENT_QUOTES, 'UTF-8') ?></span>
                                             </a>
@@ -347,51 +307,6 @@ if ($isAjax) {
                     </div>
                 </div>
             </section>
-
-            <!-- Selected Day Timeline -->
-            <div class="calendar-card">
-                <div class="calendar-card-intro">
-                    <div>
-                        <p class="calendar-card-kicker">Selected day timeline</p>
-                        <h2>Day schedule</h2>
-                        <p>Select a date to view every booked time slot.</p>
-                    </div>
-                    <div class="appointment-count" aria-live="polite"><strong id="appointmentCount"><?php echo $appointmentCount; ?></strong><span>appointment<?php echo $appointmentCount === 1 ? '' : 's'; ?></span></div>
-                </div>
-
-                <!-- Month Navigation -->
-                <div class="cal-month-nav">
-                    <button class="cal-nav-btn" id="prevMonth" aria-label="Previous month">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <span class="month-label" id="monthLabel"><?php echo date('F Y', strtotime($currentDate)); ?></span>
-                    <button class="cal-nav-btn" id="nextMonth" aria-label="Next month">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                    <span class="month-separator"></span>
-                    <input type="date" id="datePicker" value="<?php echo $currentDate; ?>" />
-                    <button class="cal-today-btn" id="todayBtn">
-                        <i class="fas fa-calendar-day"></i> Today
-                    </button>
-                </div>
-
-                <!-- Day Navigation -->
-                <div class="cal-day-nav">
-                    <button class="cal-nav-btn" id="prevDay" aria-label="Previous day">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <span class="cal-date" id="calDate"><?php echo $displayDate; ?></span>
-                    <button class="cal-nav-btn" id="nextDay" aria-label="Next day">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-
-                <!-- Time Grid -->
-                <div class="timeline-labels" aria-hidden="true"><span>Time</span><span>Customer appointment</span></div>
-                <div class="time-grid" id="timeGrid">
-                    <!-- Rows injected by JS -->
-                </div>
-            </div>
 
             <!-- Previous Bookings -->
             <div class="previous-bookings-card">
@@ -429,31 +344,18 @@ if ($isAjax) {
                         <div class="empty-previous-bookings">No previous bookings found yet.</div>
                     <?php endif; ?>
                 </div>
-                <button class="load-more-btn" id="loadMorePreviousBookings" type="button" style="<?php echo $hasMorePreviousBookings ? '' : 'display:none;'; ?>">Load more history</button>
+                <?php if ($hasMorePreviousBookings): ?>
+                    <a class="load-more-btn" href="Admin-Sched.php?<?= htmlspecialchars(http_build_query([
+                        'date' => $currentDate,
+                        'calendar_month' => $calendarMonth,
+                        'previous_page' => $previousBookingsPage + 1,
+                    ]), ENT_QUOTES, 'UTF-8') ?>">Load more history</a>
+                <?php endif; ?>
             </div>
 
         </main>
     </div>
 
     <!-- ═══ TOAST ═══ -->
-    <div class="toast" id="toast"></div>
-
-    <!-- Inject PHP data as JavaScript -->
-    <script>
-        window.calendarData = {
-            currentDate: '<?php echo $currentDate; ?>',
-            displayDate: '<?php echo $displayDate; ?>',
-            bookings: <?php echo json_encode($bookings); ?>,
-            timeSlots: <?php echo json_encode($timeSlots); ?>,
-            staff: <?php echo json_encode($staffList); ?>,
-            services: <?php echo json_encode($servicesList); ?>,
-            users: <?php echo json_encode($usersList); ?>,
-            previousBookings: <?php echo json_encode($previousBookings); ?>,
-            hasMorePreviousBookings: <?php echo json_encode($hasMorePreviousBookings); ?>,
-            previousBookingsPage: <?php echo json_encode($previousBookingsPage); ?>
-        };
-    </script>
-
-    <script src="../JS/Admin-Serenity-Sched.js"></script>
 </body>
 </html>

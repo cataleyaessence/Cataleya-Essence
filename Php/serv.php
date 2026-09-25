@@ -61,7 +61,7 @@ if ($reward && !empty($reward['tier'])) {
  * removed from the project. The returned assets exist in /img and are suitable
  * replacements until an administrator uploads a dedicated image.
  */
-function resolveCatalogServiceImage(?string $imagePath): ?string
+function resolveCatalogServiceImage(?string $imagePath, ?string $serviceName = null): ?string
 {
     $imagePath = trim((string) $imagePath);
     if ($imagePath === '') {
@@ -72,10 +72,33 @@ function resolveCatalogServiceImage(?string $imagePath): ?string
     $filename = strtolower(rawurldecode(basename(str_replace('\\', '/', $pathPart ?: $imagePath))));
     $legacyImageReplacements = [
         'eyeliner tattoo.png' => '../img/cat eye look.png',
-        'lip blush.png' => '../img/microblading.png',
+        'lip blush.png' => '../img/microshading.png',
         'hilot.png' => '../img/Hilot.png',
         'ventosa.png' => '../img/Ventosa.png',
     ];
+
+    // Waxing services have their own specified asset, even when a legacy
+    // database row incorrectly stores the same image path for all of them.
+    $requiredServiceImages = [
+        'underarm waxing' => '../img/underarm.png',
+        'full leg waxing' => '../img/legs.png',
+        'brazilian waxing' => '../img/brazilian.png',
+    ];
+    $serviceNameKey = strtolower(trim((string) $serviceName));
+    if (isset($requiredServiceImages[$serviceNameKey])) {
+        return $requiredServiceImages[$serviceNameKey];
+    }
+
+    // Older records reused a single image for several different services.
+    // Preserve administrator-uploaded images while correcting known legacy paths.
+    $legacyServiceImageReplacements = [
+        'underarm|removal arms.png' => '../img/removal underarm.png',
+        'lip blush|microblading.png' => '../img/microshading.png',
+    ];
+    $serviceImageKey = $serviceNameKey . '|' . $filename;
+    if (isset($legacyServiceImageReplacements[$serviceImageKey])) {
+        return $legacyServiceImageReplacements[$serviceImageKey];
+    }
 
     return $legacyImageReplacements[$filename] ?? $imagePath;
 }
@@ -86,13 +109,25 @@ $serviceStmt = $pdo->query(
             price, duration_minutes AS durationMinutes, image_url AS image
      FROM services
      WHERE is_active = 1
-     ORDER BY main_category, sub_category, name'
+     ORDER BY main_category, sub_category, name, id DESC'
 );
-$catalogServices = $serviceStmt->fetchAll();
-foreach ($catalogServices as &$catalogService) {
-    $catalogService['image'] = resolveCatalogServiceImage($catalogService['image'] ?? null);
+$catalogServices = [];
+$seenCatalogServices = [];
+foreach ($serviceStmt->fetchAll() as $catalogService) {
+    $serviceKey = strtolower(trim((string) $catalogService['category'])) . '|'
+        . strtolower(trim((string) $catalogService['subCategory'])) . '|'
+        . strtolower(trim((string) $catalogService['name']));
+    if (isset($seenCatalogServices[$serviceKey])) {
+        continue;
+    }
+
+    $seenCatalogServices[$serviceKey] = true;
+    $catalogService['image'] = resolveCatalogServiceImage(
+        $catalogService['image'] ?? null,
+        $catalogService['name'] ?? null
+    );
+    $catalogServices[] = $catalogService;
 }
-unset($catalogService);
 
 function formatCatalogDuration(?int $durationMinutes): string
 {

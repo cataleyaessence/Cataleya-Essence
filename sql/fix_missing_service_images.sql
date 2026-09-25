@@ -2,7 +2,7 @@
 -- Both replacement files are already present in the project's img directory.
 UPDATE services
 SET image_url = CASE name
-    WHEN 'Lip Blush' THEN '../img/microblading.png'
+    WHEN 'Lip Blush' THEN '../img/microshading.png'
     WHEN 'Eyeliner Tattoo' THEN '../img/cat eye look.png'
     ELSE image_url
 END

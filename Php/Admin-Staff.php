@@ -65,7 +65,7 @@ $adminInitial = strtoupper(substr(trim($adminName), 0, 1)) ?: 'A';
     <link rel="stylesheet" href="../css/Admin-StaffSelection.css" />
     <link rel="stylesheet" href="../css/admin-sidebar.css" />
 </head>
-<body>
+<body class="admin-page">
     <header class="navbar">
         <div class="navbar-brand">
             <div class="navbar-logo"><img src="../img/Rectangle 38 (1).png" class="logo-img" alt="Cataleya Essence of Beauty" /></div>

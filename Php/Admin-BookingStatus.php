@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['action'] ?? '') === 'snapsh
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
-<body data-booking-snapshot="<?php echo htmlspecialchars($bookingSnapshotSignature, ENT_QUOTES, 'UTF-8'); ?>">
+<body class="admin-page" data-booking-snapshot="<?php echo htmlspecialchars($bookingSnapshotSignature, ENT_QUOTES, 'UTF-8'); ?>">
     <header class="navbar">
         <div class="navbar-brand">
             <div class="navbar-logo">

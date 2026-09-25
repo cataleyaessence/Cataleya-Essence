@@ -115,7 +115,7 @@ $adminInitial = strtoupper(substr($adminDisplayName, 0, 1)) ?: 'A';
     <link rel="stylesheet" href="../css/admin-sidebar.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
-<body>
+<body class="admin-page">
 
     <!-- ── TOP NAVBAR ── -->
     <header class="navbar">

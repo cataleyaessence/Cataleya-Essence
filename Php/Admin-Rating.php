@@ -18,7 +18,7 @@ if (empty($_SESSION['admin_logged_in']) || empty($_SESSION['admin_id'])) {
   <link rel="stylesheet" href="../css/admin-sidebar.css" />
 </head>
 
-<body>
+<body class="admin-page">
 
   <header class="navbar">
     <div class="navbar-brand">

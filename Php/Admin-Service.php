@@ -41,7 +41,7 @@ $adminInitial = strtoupper(substr(trim($adminName), 0, 1)) ?: 'A';
     <link rel="stylesheet" href="../css/admin-sidebar.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
-<body>
+<body class="admin-page">
 
     <!-- ─── NAVBAR ─── -->
     <header class="navbar">

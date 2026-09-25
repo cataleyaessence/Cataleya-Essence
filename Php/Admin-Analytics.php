@@ -247,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <link rel="stylesheet" href="../css/Admin-Booking Analytics.css" />
     <link rel="stylesheet" href="../css/admin-sidebar.css" />
 </head>
-<body class="analytics-page">
+<body class="analytics-page admin-page">
 
     <!-- ── TOP NAVBAR ── -->
     <header class="navbar">

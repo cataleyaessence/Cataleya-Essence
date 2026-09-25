@@ -2,6 +2,15 @@
 :root {
     --sidebar-w: 180px;
     --navbar-h: 56px;
+    /* Matches the refreshed Booking Analytics canvas. */
+    --admin-page-background:
+        radial-gradient(circle at 93% 4%, rgba(244, 111, 164, 0.14), transparent 24rem),
+        linear-gradient(180deg, #fff8fb 0%, #fff4f8 100%);
+}
+
+/* Shared canvas for every authenticated admin screen. */
+body.admin-page {
+    background: var(--admin-page-background);
 }
 
 .sidebar {
