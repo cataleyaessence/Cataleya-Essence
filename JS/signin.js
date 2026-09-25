@@ -271,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value.trim();
+        const rememberMe = document.getElementById('rememberMe');
 
         if (!email || !password) {
             messageEl.className = 'auth-message error';
@@ -283,6 +284,14 @@ document.addEventListener('DOMContentLoaded', function() {
             messageEl.className = 'auth-message error';
             messageEl.textContent = 'Please enter a valid email address.';
             messageEl.style.display = 'block';
+            return;
+        }
+
+        if (!rememberMe || !rememberMe.checked) {
+            messageEl.className = 'auth-message error';
+            messageEl.textContent = 'Please check Remember me before signing in.';
+            messageEl.style.display = 'block';
+            rememberMe?.focus();
             return;
         }
 

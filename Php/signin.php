@@ -64,7 +64,7 @@ if (isset($_SESSION['user_id'])) {
 
                 <div class="form-options">
                     <label class="remember">
-                        <input type="checkbox" id="rememberMe" required />
+                        <input type="checkbox" id="rememberMe" name="remember" value="1" required />
                         <span>Remember me</span>
                     </label>
                     <a href="#" id="forgotPasswordLink">Forgot Password?</a>

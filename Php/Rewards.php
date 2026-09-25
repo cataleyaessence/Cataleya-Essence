@@ -85,7 +85,7 @@ switch ($current_tier) {
         break;
 }
 
-// Only completed services earn and show rewards points.
+// Show every booking's reward outcome. Only completed services can earn points.
 $stmt = $pdo->prepare("
     SELECT s.name AS service_name, b.booking_date, b.booking_time, b.status,
         s.price AS original_price, b.total_amount AS discounted_price,
@@ -93,12 +93,24 @@ $stmt = $pdo->prepare("
     FROM bookings b
     JOIN services s ON b.service_id = s.id
     LEFT JOIN reward_transactions rt ON b.id = rt.booking_id
-    WHERE b.user_id = ? AND b.status = 'completed'
+    WHERE b.user_id = ?
+      AND b.status IN ('confirmed', 'rescheduled', 'completed', 'cancelled')
     GROUP BY b.id, s.name, b.booking_date, b.booking_time, b.status, s.price, b.total_amount
     ORDER BY b.booking_date DESC, b.booking_time DESC
 ");
 $stmt->execute([$user_id]);
 $recent_activity = $stmt->fetchAll();
+
+function rewardZeroPointsReason(string $bookingStatus): string
+{
+    return match ($bookingStatus) {
+        'confirmed' => 'No points yet — points are added after the service is completed.',
+        'rescheduled' => 'No points yet — points are added after the rescheduled service is completed.',
+        'cancelled' => 'No points earned — cancelled bookings are not eligible for rewards.',
+        'completed' => 'No points recorded yet — please ask the spa team to confirm this completed service.',
+        default => 'No points yet — only completed services earn rewards.',
+    };
+}
 
 // Fetch Hall of Fame data
 $stmt = $pdo->prepare("
@@ -280,21 +292,33 @@ $remainder = array_slice($hall_of_fame, 3);
 
       <!-- RIGHT – Recent Activity -->
       <div class="activity-card">
-        <h3 class="activity-card__title">Completed Service Rewards</h3>
+        <h3 class="activity-card__title">Booking Rewards</h3>
 
         <?php if (!empty($recent_activity)): ?>
           <?php foreach ($recent_activity as $activity): ?>
+            <?php
+              $activityPoints = (int) $activity['points_earned'];
+              $pointsClass = $activityPoints > 0
+                ? 'activity-item__points--positive'
+                : ($activityPoints < 0 ? 'activity-item__points--negative' : 'activity-item__points--zero');
+              $zeroPointsReason = $activityPoints === 0
+                ? rewardZeroPointsReason((string) $activity['status'])
+                : null;
+            ?>
             <div class="activity-item">
               <div class="activity-item__left">
                 <span class="activity-item__name"><?php echo htmlspecialchars($activity['service_name']); ?></span>
                 <span class="activity-item__date"><?php echo date('F j, Y \a\t H:i', strtotime($activity['booking_date'] . ' ' . $activity['booking_time'])); ?></span>
                 <span class="activity-item__price">Original: ₱<?php echo number_format($activity['original_price'], 2); ?> • Discounted: ₱<?php echo number_format($activity['discounted_price'], 2); ?></span>
+                <?php if ($zeroPointsReason): ?>
+                  <span class="activity-item__reason"><?php echo htmlspecialchars($zeroPointsReason); ?></span>
+                <?php endif; ?>
               </div>
-              <span class="activity-item__points activity-item__points--positive"><?php echo $activity['points_earned']; ?> pts</span>
+              <span class="activity-item__points <?php echo $pointsClass; ?>"><?php echo $activityPoints; ?> pts</span>
             </div>
           <?php endforeach; ?>
         <?php else: ?>
-          <p class="activity-item__name">No completed services yet. Points are added after your service is completed.</p>
+          <p class="activity-item__name">No booking rewards yet. Points are added after your service is completed.</p>
         <?php endif; ?>
       </div>
 

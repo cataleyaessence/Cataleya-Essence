@@ -71,7 +71,9 @@
             </div>
 
             <footer class="terms-card-footer">
+                <?php if (!$userNavbarUser): ?>
                 <a class="btn-primary" href="signup.php"><i class="fas fa-user-plus" aria-hidden="true"></i> Create an account</a>
+                <?php endif; ?>
                 <a class="btn-secondary" href="faq.php"><i class="fas fa-circle-question" aria-hidden="true"></i> View FAQs</a>
             </footer>
         </article>

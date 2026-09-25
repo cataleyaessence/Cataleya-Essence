@@ -158,20 +158,20 @@ if (count($name_parts) >= 2) {
             <div class="profile-main">
 
                 <!-- Filter Tabs -->
-                <div class="filter-tabs" id="filterTabs">
-                    <button class="filter-tab active" data-status="all">
+                <div class="filter-tabs" id="filterTabs" role="toolbar" aria-label="Filter bookings by status">
+                    <button type="button" class="filter-tab active" data-status="all" aria-pressed="true">
                         All <span class="count-badge"><?php echo $status_counts['all']; ?></span>
                     </button>
-                    <button class="filter-tab" data-status="confirmed">
+                    <button type="button" class="filter-tab" data-status="confirmed" aria-pressed="false">
                         <i class="fas fa-check-circle"></i> Confirmed <span class="count-badge"><?php echo $status_counts['confirmed']; ?></span>
                     </button>
-                    <button class="filter-tab" data-status="rescheduled">
+                    <button type="button" class="filter-tab" data-status="rescheduled" aria-pressed="false">
                         <i class="fas fa-calendar-pen"></i> Rescheduled <span class="count-badge"><?php echo $status_counts['rescheduled']; ?></span>
                     </button>
-                    <button class="filter-tab" data-status="completed">
+                    <button type="button" class="filter-tab" data-status="completed" aria-pressed="false">
                         <i class="fas fa-check-double"></i> Completed <span class="count-badge"><?php echo $status_counts['completed']; ?></span>
                     </button>
-                    <button class="filter-tab" data-status="cancelled">
+                    <button type="button" class="filter-tab" data-status="cancelled" aria-pressed="false">
                         <i class="fas fa-times-circle"></i> Cancelled <span class="count-badge"><?php echo $status_counts['cancelled']; ?></span>
                     </button>
                 </div>
@@ -224,6 +224,10 @@ if (count($name_parts) >= 2) {
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
+                    <div class="filter-empty-state" id="filterEmptyState" hidden role="status" aria-live="polite">
+                        <i class="fas fa-calendar-xmark" aria-hidden="true"></i>
+                        <p>No bookings match this filter.</p>
+                    </div>
                 </div>
 
             </div> <!-- /profile-main -->

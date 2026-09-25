@@ -160,10 +160,10 @@ $recent_bookings = $stmt->fetchAll();
                     <h2><?php echo htmlspecialchars($user['full_name']); ?></h2>
                 </div>
                 <div class="profile-details">
-                    <p><i class="fas fa-envelope"></i> <?php echo htmlspecialchars($user['email']); ?></p>
-                    <p><i class="fas fa-phone"></i> <?php echo htmlspecialchars($user['phone'] ?? 'Not provided'); ?></p>
-                    <p><i class="fas fa-map-pin"></i> <?php echo htmlspecialchars($full_address ?: 'Not provided'); ?></p>
-                    <p class="member-since"><i class="fas fa-calendar-alt"></i> Member since <?php echo htmlspecialchars($member_since); ?></p>
+                    <p><i class="fas fa-envelope" aria-hidden="true"></i><span><?php echo htmlspecialchars($user['email']); ?></span></p>
+                    <p><i class="fas fa-phone" aria-hidden="true"></i><span><?php echo htmlspecialchars($user['phone'] ?? 'Not provided'); ?></span></p>
+                    <p><i class="fas fa-map-pin" aria-hidden="true"></i><span><?php echo htmlspecialchars($full_address ?: 'Not provided'); ?></span></p>
+                    <p class="member-since"><i class="fas fa-calendar-alt" aria-hidden="true"></i><span>Member since <?php echo htmlspecialchars($member_since); ?></span></p>
                 </div>
             </div>
         </div>

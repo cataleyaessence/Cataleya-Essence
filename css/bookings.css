@@ -368,6 +368,7 @@ img {
     max-width: 1200px;
     margin: 0 auto;
     padding: 32px 48px 60px;
+    width: 100%;
 }
 
 .profile-header {
@@ -396,6 +397,7 @@ img {
     display: flex;
     align-items: flex-start;
     gap: 24px;
+    min-width: 0;
 }
 
 .profile-sidebar {
@@ -491,6 +493,7 @@ img {
     border-radius: var(--r-card);
     border: 1px solid var(--border-light);
     box-shadow: var(--shadow);
+    min-width: 0;
 }
 
 .filter-tab {
@@ -550,6 +553,28 @@ img {
     padding: 24px 28px;
     box-shadow: var(--shadow);
     border: 1px solid var(--border-light);
+    min-width: 0;
+    min-height: 160px;
+}
+
+.filter-empty-state {
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    min-height: 220px;
+    padding: 28px 20px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.filter-empty-state i {
+    color: var(--pink-light);
+    font-size: 2rem;
+}
+
+.filter-empty-state p {
+    margin: 0;
+    font-size: 0.9rem;
 }
 
 .empty-state {
@@ -666,6 +691,8 @@ img {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .booking-body .stylist-name {
@@ -771,6 +798,10 @@ img {
 
 /* ───────── RESPONSIVE ───────── */
 @media (max-width: 900px) {
+    .profile-page {
+        padding: 28px 32px 52px;
+    }
+
     .profile-layout {
         flex-direction: column;
     }
@@ -778,6 +809,10 @@ img {
         width: 100%;
         position: static;
         padding: 10px;
+    }
+
+    .profile-main {
+        width: 100%;
     }
     .sidebar-nav {
         flex-direction: row;
@@ -795,6 +830,26 @@ img {
         border-left: 1px solid var(--border-light);
         padding-left: 16px;
     }
+
+    .filter-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: thin;
+        scroll-behavior: smooth;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-tab {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+        white-space: nowrap;
+    }
+
+    .bookings-container {
+        padding: 20px 22px;
+    }
 }
 
 @media (max-width: 700px) {
@@ -805,17 +860,45 @@ img {
         flex-direction: column;
         align-items: flex-start;
     }
+
+    .filter-tabs {
+        margin-bottom: 16px;
+    }
+
     .booking-card {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        align-items: start;
         gap: 12px;
     }
+
     .booking-actions {
+        grid-column: 1 / -1;
         width: 100%;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-light);
     }
 }
 
 @media (max-width: 620px) {
+    .profile-page {
+        padding: 20px 16px 36px;
+    }
+
+    .profile-header {
+        margin-bottom: 20px;
+    }
+
+    .profile-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .profile-header p {
+        font-size: 0.86rem;
+    }
+
     .navbar {
         padding: 0 20px;
         height: 64px;
@@ -890,12 +973,7 @@ img {
     .navbar__links .login-link {
         display: none;
     }
-    .filter-tabs {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 4px;
-        padding: 4px;
-    }
+    .filter-tabs { gap: 4px; padding: 4px; }
     .filter-tab {
         font-size: 0.7rem;
         padding: 6px 12px;
@@ -910,6 +988,29 @@ img {
 }
 
 @media (max-width: 480px) {
+    .filter-tabs {
+        margin-bottom: 14px;
+    }
+
+    .filter-tab {
+        min-height: 36px;
+    }
+
+    .bookings-container {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .booking-card {
+        grid-template-columns: 42px minmax(0, 1fr);
+        padding: 14px;
+    }
+
+    .booking-icon-wrap {
+        width: 42px;
+        height: 42px;
+    }
+
     .booking-body .booking-meta {
         flex-direction: column;
         gap: 4px;
@@ -917,6 +1018,21 @@ img {
     .booking-actions {
         justify-content: flex-start;
         margin-top: 4px;
+    }
+
+    .btn-reschedule-booking,
+    .btn-cancel-booking {
+        flex: 1 1 132px;
+        justify-content: center;
+        min-height: 38px;
+    }
+
+    .empty-state {
+        padding: 28px 12px;
+    }
+
+    .filter-empty-state {
+        min-height: 180px;
     }
 }
 
@@ -944,7 +1060,7 @@ img {
 .modal-container {
     width: 100%;
     max-width: 560px;
-    max-height: 100%;
+    max-height: calc(100dvh - 48px);
 }
 
 .modal-card {
@@ -954,6 +1070,7 @@ img {
     border-radius: 18px;
     box-shadow: 0 24px 70px rgba(30, 24, 28, 0.24);
     overflow: hidden;
+    max-height: 100%;
     transform: translateY(20px) scale(0.95);
     transition: transform 0.3s ease;
 }
@@ -1169,6 +1286,11 @@ img {
     padding: 24px 28px 0;
 }
 
+.reschedule-modal-card,
+.cancel-booking-modal {
+    overflow-y: auto;
+}
+
 .reschedule-field {
     margin-bottom: 18px;
 }
@@ -1299,6 +1421,7 @@ img {
 .cancel-policy-warning strong,
 .cancel-policy-warning span {
     display: block;
+    overflow-wrap: anywhere;
 }
 
 .cancel-policy-warning strong {
@@ -1393,5 +1516,41 @@ img {
 
     .cancel-booking-content {
         padding: 20px 20px 8px;
+    }
+}
+
+@media (max-width: 420px) {
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 8px;
+    }
+
+    .modal-container {
+        max-height: calc(100dvh - 16px);
+    }
+
+    .modal-footer,
+    .reschedule-footer,
+    .cancel-booking-footer {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .modal-footer .btn-secondary-modal,
+    .modal-footer .btn-confirm-reschedule,
+    .modal-footer .btn-confirm-cancel,
+    .modal-footer .btn-close-modal {
+        width: 100%;
+    }
+}
+
+@media (max-width: 360px) {
+    .navbar {
+        gap: 8px;
+        padding: 0 14px;
+    }
+
+    .navbar .logo-text {
+        display: none;
     }
 }

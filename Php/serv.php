@@ -56,6 +56,28 @@ if ($reward && !empty($reward['tier'])) {
     }
 }
 
+/**
+ * Keep legacy service rows usable when an old image filename has since been
+ * removed from the project. The returned assets exist in /img and are suitable
+ * replacements until an administrator uploads a dedicated image.
+ */
+function resolveCatalogServiceImage(?string $imagePath): ?string
+{
+    $imagePath = trim((string) $imagePath);
+    if ($imagePath === '') {
+        return null;
+    }
+
+    $pathPart = parse_url($imagePath, PHP_URL_PATH);
+    $filename = strtolower(rawurldecode(basename(str_replace('\\', '/', $pathPart ?: $imagePath))));
+    $legacyImageReplacements = [
+        'eyeliner tattoo.png' => '../img/cat eye look.png',
+        'lip blush.png' => '../img/microblading.png',
+    ];
+
+    return $legacyImageReplacements[$filename] ?? $imagePath;
+}
+
 // The customer catalog uses the same active services managed in Admin-Service.php.
 $serviceStmt = $pdo->query(
     'SELECT id, name, description, main_category AS category, sub_category AS subCategory,
@@ -65,6 +87,10 @@ $serviceStmt = $pdo->query(
      ORDER BY main_category, sub_category, name'
 );
 $catalogServices = $serviceStmt->fetchAll();
+foreach ($catalogServices as &$catalogService) {
+    $catalogService['image'] = resolveCatalogServiceImage($catalogService['image'] ?? null);
+}
+unset($catalogService);
 
 function formatCatalogDuration(?int $durationMinutes): string
 {

@@ -39,6 +39,13 @@ body {
     align-items: stretch;
     justify-content: stretch;
     overflow: hidden;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
 }
 
 a {
@@ -66,17 +73,30 @@ input {
 
 /* ----- Left Panel (Form) ----- */
 .auth-form {
-    padding: 48px 56px;
+    padding: 32px 56px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     background: var(--white);
     max-width: 540px;
     width: 100%;
     margin: 0 auto;
     overflow-y: auto;
     height: 100vh;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
     transition: filter 0.3s ease;
+}
+
+.auth-form::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+@media (min-width: 901px) and (min-height: 820px) {
+    .auth-form {
+        justify-content: center;
+    }
 }
 
 .auth-form .brand {
@@ -734,6 +754,13 @@ input {
         height: auto;
         min-height: 100vh;
         overflow-y: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .auth-container::-webkit-scrollbar {
+        width: 0;
+        height: 0;
     }
 
     .auth-testimonial {

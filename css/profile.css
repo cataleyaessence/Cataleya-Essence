@@ -519,6 +519,7 @@ img {
 
 .profile-info {
     flex: 1;
+    min-width: 0;
 }
 
 .profile-name-row {
@@ -555,15 +556,23 @@ img {
 .profile-details p {
     font-size: 0.85rem;
     color: var(--text-body);
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    align-items: flex-start;
+    column-gap: 10px;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .profile-details p i {
     width: 16px;
+    margin-top: 2px;
     color: var(--text-muted);
     font-size: 0.8rem;
+}
+
+.profile-details p span {
+    min-width: 0;
 }
 
 .profile-details .member-since {
@@ -728,6 +737,7 @@ img {
 
 .booking-info {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
@@ -736,11 +746,13 @@ img {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-dark);
+    overflow-wrap: anywhere;
 }
 
 .booking-date {
     font-size: 0.75rem;
     color: var(--text-muted);
+    overflow-wrap: anywhere;
 }
 
 .booking-status {
@@ -867,7 +879,11 @@ img {
 }
 
 /* ───────── RESPONSIVE ───────── */
-@media (max-width: 900px) {
+@media (max-width: 960px) {
+    .profile-page {
+        padding: 28px 32px 52px;
+    }
+
     .stats-row {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -882,21 +898,28 @@ img {
         position: static;
         padding: 10px;
     }
+
     .sidebar-nav {
-        flex-direction: row;
-        overflow-x: auto;
-        gap: 6px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
     }
+
     .sidebar-link {
-        white-space: nowrap;
-        flex-shrink: 0;
+        min-width: 0;
+        justify-content: center;
+        padding: 11px 12px;
+        text-align: center;
     }
+
+    .sidebar-link i { flex: 0 0 18px; }
+
     .sidebar-link--signout {
         margin-top: 0;
-        padding-top: 12px;
+        padding-top: 11px;
         border-top: none;
-        border-left: 1px solid var(--border-light);
-        padding-left: 16px;
+        border-left: none;
+        padding-left: 12px;
     }
 }
 
@@ -904,6 +927,16 @@ img {
     .profile-page {
         padding: 24px 20px 40px;
     }
+
+    .sidebar-nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sidebar-link {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
     .profile-header {
         flex-direction: column;
         align-items: flex-start;
@@ -913,11 +946,21 @@ img {
         text-align: center;
         padding: 24px 20px;
     }
+
+    .profile-avatar-large {
+        margin: 0 auto;
+    }
+
+    .profile-info {
+        width: 100%;
+    }
+
     .profile-name-row {
         justify-content: center;
     }
+
     .profile-details p {
-        justify-content: center;
+        text-align: left;
     }
     .favorite-grid {
         grid-template-columns: 1fr;
@@ -1002,10 +1045,48 @@ img {
 }
 
 @media (max-width: 480px) {
+    .profile-page {
+        padding: 20px 16px 36px;
+    }
+
+    .profile-header {
+        margin-bottom: 20px;
+    }
+
+    .profile-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .profile-header p {
+        font-size: 0.86rem;
+    }
+
+    .sidebar-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-link {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
     .stats-row {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
     }
+
+    .stat-card:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .stat-card {
+        padding: 15px 12px;
+    }
+
+    .stat-number {
+        font-size: 1.7rem;
+    }
+
     .profile-avatar-large {
         width: 64px;
         height: 64px;
@@ -1015,10 +1096,24 @@ img {
         font-size: 1.05rem;
     }
     .booking-item {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
         gap: 8px;
     }
+
     .booking-status {
-        margin-left: auto;
+        grid-column: 2;
+        justify-self: start;
+        margin-left: 0;
+    }
+
+    .section-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .recent-bookings {
+        padding: 20px 16px;
     }
 }

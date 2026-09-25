@@ -12,10 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
-$remember = isset($_POST['remember']) ? true : false;
+$remember = isset($_POST['remember']) && $_POST['remember'] === '1';
 
 if (empty($email) || empty($password)) {
     echo json_encode(['success' => false, 'error' => 'Email and password are required.']);
+    exit;
+}
+
+if (!$remember) {
+    echo json_encode(['success' => false, 'error' => 'Please check Remember me before signing in.']);
     exit;
 }
 
@@ -78,7 +83,7 @@ if ($isAdmin) {
     $redirect = '../Php/home.php';
 }
 
-// Remember me (optional)
+// Remember me has been confirmed by the user before this login request.
 if ($remember) {
     // You can set a cookie with a token if desired.
 }

@@ -3,13 +3,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // ─── FILTER TABS ──────────────────────────────────────────────
     const filterTabs = document.querySelectorAll('.filter-tab');
     const bookingCards = document.querySelectorAll('.booking-card');
+    const filterEmptyState = document.getElementById('filterEmptyState');
 
     // Function to filter bookings
     function filterBookings(status) {
+        let visibleBookings = 0;
+
         bookingCards.forEach(card => {
             const cardStatus = card.getAttribute('data-status');
             if (status === 'all' || cardStatus === status) {
                 card.classList.remove('hidden');
+                visibleBookings += 1;
             } else {
                 card.classList.add('hidden');
             }
@@ -17,11 +21,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Update active tab
         filterTabs.forEach(tab => {
-            tab.classList.remove('active');
-            if (tab.getAttribute('data-status') === status) {
-                tab.classList.add('active');
-            }
+            const isActive = tab.getAttribute('data-status') === status;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-pressed', String(isActive));
         });
+
+        if (filterEmptyState && bookingCards.length > 0) {
+            filterEmptyState.hidden = visibleBookings > 0;
+        }
     }
 
     // Add click event to each tab
@@ -29,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
         tab.addEventListener('click', function () {
             const status = this.getAttribute('data-status');
             filterBookings(status);
+            this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
         });
     });
 

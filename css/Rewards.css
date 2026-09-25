@@ -678,6 +678,7 @@ img {
 .activity-item__left {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .activity-item__name {
@@ -701,6 +702,14 @@ img {
     margin-top: 4px;
 }
 
+.activity-item__reason {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: #8a5362;
+    margin-top: 5px;
+}
+
 .activity-item__points {
     font-family: var(--font-body);
     font-size: 0.9rem;
@@ -712,6 +721,18 @@ img {
 
 .activity-item__points--positive::before {
     content: '+';
+}
+
+.activity-item__points--zero {
+    color: #8a5362;
+}
+
+.activity-item__points--zero::before {
+    content: '+';
+}
+
+.activity-item__points--negative {
+    color: #a52445;
 }
 
 /* view more button */
