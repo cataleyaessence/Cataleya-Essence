@@ -12,6 +12,39 @@ document.addEventListener('DOMContentLoaded', function () {
     var noBookingsMessage = document.querySelector('.no-bookings-message');
     var filterStorageKey = 'cataleya-admin-booking-status-filter';
 
+    function refreshCompletionAvailability() {
+        var now = Date.now();
+        var completionItems = document.querySelectorAll('.previous-booking-item[data-completion-at]');
+
+        completionItems.forEach(function (item) {
+            var completionAt = Date.parse(item.getAttribute('data-completion-at') || '');
+            if (Number.isNaN(completionAt) || now < completionAt) {
+                return;
+            }
+
+            var completeButton = item.querySelector('.booking-action-button.complete');
+            if (completeButton) {
+                completeButton.disabled = false;
+                completeButton.textContent = 'Complete';
+            }
+
+            var completionNote = item.querySelector('.completion-action-note');
+            if (completionNote) {
+                completionNote.remove();
+            }
+
+            item.removeAttribute('data-completion-at');
+        });
+    }
+
+    refreshCompletionAvailability();
+    window.setInterval(refreshCompletionAvailability, 1000);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            refreshCompletionAvailability();
+        }
+    });
+
     if (!filterButtons.length || !noBookingsMessage) {
         startLiveBookingUpdates();
         return;

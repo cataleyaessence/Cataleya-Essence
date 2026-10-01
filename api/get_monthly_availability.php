@@ -23,15 +23,63 @@ try {
     $first_day = new DateTime("$year-$month-01");
     $last_day = new DateTime("$year-$month-" . $first_day->format('t'));
 
-    // Fetch daily slot availability for the month
+    // A date is fully booked only when all of its active time slots have an
+    // active booking (or have been marked unavailable). This lets the user
+    // select dates that still have at least one open time.
     $stmt = $pdo->prepare("
-        SELECT slot_date, status
-        FROM daily_slot_availability
-        WHERE slot_date >= ? AND slot_date <= ?
-        GROUP BY slot_date, status
+        SELECT
+            calendar_days.slot_date,
+            COUNT(ts.id) AS total_slots,
+            SUM(
+                CASE
+                    WHEN LOWER(COALESCE(dsa.status, 'available')) IN ('booked', 'unavailable')
+                         OR GREATEST(COALESCE(dsa.current_bookings, 0), COALESCE(active_bookings.booking_count, 0))
+                            >= COALESCE(NULLIF(dsa.max_bookings, 0), 1)
+                    THEN 1 ELSE 0
+                END
+            ) AS booked_slots
+        FROM (
+            SELECT slot_date
+            FROM daily_slot_availability
+            WHERE slot_date BETWEEN ? AND ?
+            GROUP BY slot_date
+            UNION
+            SELECT booking_date AS slot_date
+            FROM bookings
+            WHERE booking_date BETWEEN ? AND ?
+              AND status IN ('confirmed', 'rescheduled')
+            GROUP BY booking_date
+        ) AS calendar_days
+        CROSS JOIN time_slots ts
+        LEFT JOIN daily_slot_availability dsa
+            ON dsa.slot_date = calendar_days.slot_date
+           AND dsa.slot_id = ts.id
+        LEFT JOIN (
+            SELECT booking_date, booking_time, COUNT(*) AS booking_count
+            FROM bookings
+            WHERE booking_date BETWEEN ? AND ?
+              AND status IN ('confirmed', 'rescheduled')
+            GROUP BY booking_date, booking_time
+        ) AS active_bookings
+            ON active_bookings.booking_date = calendar_days.slot_date
+           AND active_bookings.booking_time = ts.slot_time
+        WHERE ts.is_active = 1
+        GROUP BY calendar_days.slot_date
+        ORDER BY calendar_days.slot_date
     ");
-    $stmt->execute([$first_day->format('Y-m-d'), $last_day->format('Y-m-d')]);
-    $daily_availability = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    $startDate = $first_day->format('Y-m-d');
+    $endDate = $last_day->format('Y-m-d');
+    $stmt->execute([$startDate, $endDate, $startDate, $endDate, $startDate, $endDate]);
+    $dailyRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $daily_availability = [];
+    foreach ($dailyRows as $day) {
+        $totalSlots = (int) $day['total_slots'];
+        $bookedSlots = (int) $day['booked_slots'];
+        $daily_availability[(string) $day['slot_date']] = $totalSlots > 0 && $bookedSlots >= $totalSlots
+            ? 'booked'
+            : ($bookedSlots > 0 ? 'filling' : 'available');
+    }
 
     echo json_encode(['success' => true, 'availability' => $daily_availability]);
 } catch (PDOException $e) {

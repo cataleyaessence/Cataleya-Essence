@@ -1,523 +1,616 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const csrfToken = body.dataset.paymentCsrf || '';
 
-    // ─── HAMBURGER MENU ──────────────────────────────────────
     const hamburger = document.getElementById('hamburger');
     const navLinks = document.getElementById('nav-links');
     if (hamburger && navLinks) {
-        hamburger.addEventListener('click', function() {
-            this.classList.toggle('active');
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
             navLinks.classList.toggle('open');
-            this.setAttribute('aria-expanded', navLinks.classList.contains('open'));
+            hamburger.setAttribute('aria-expanded', String(navLinks.classList.contains('open')));
         });
     }
 
-    // ─── PROFILE DROPDOWN TOGGLE ─────────────────────────────
     const avatar = document.getElementById('profileAvatar');
     const dropdown = document.getElementById('profileDropdown');
     const overlay = document.getElementById('dropdownOverlay');
-
     if (avatar && dropdown && overlay) {
-        function toggleDropdown(forceState) {
-            const isOpen = typeof forceState === 'boolean' ? forceState : !dropdown.classList.contains('open');
+        const toggleDropdown = (open) => {
+            const isOpen = typeof open === 'boolean' ? open : !dropdown.classList.contains('open');
             dropdown.classList.toggle('open', isOpen);
-            avatar.setAttribute('aria-expanded', isOpen);
             overlay.classList.toggle('active', isOpen);
-        }
-
-        avatar.addEventListener('click', function(e) {
-            e.stopPropagation();
+            avatar.setAttribute('aria-expanded', String(isOpen));
+        };
+        avatar.addEventListener('click', (event) => {
+            event.stopPropagation();
             toggleDropdown();
         });
-
-        overlay.addEventListener('click', function() {
-            toggleDropdown(false);
-        });
-
-        document.addEventListener('click', function(e) {
+        overlay.addEventListener('click', () => toggleDropdown(false));
+        document.addEventListener('click', (event) => {
             const wrapper = document.getElementById('profileWrapper');
-            if (wrapper && !wrapper.contains(e.target) && dropdown.classList.contains('open')) {
-                toggleDropdown(false);
-            }
-        });
-
-        dropdown.addEventListener('click', function(e) {
-            e.stopPropagation();
+            if (wrapper && !wrapper.contains(event.target)) toggleDropdown(false);
         });
     }
 
-    // ─── RETRIEVE BOOKING DATA FROM SESSIONSTORAGE ──────────
     let bookingData = {
-        service: { name: 'Celebrity Drip', price: '₱1,799.00' },
-        dateTime: { date: 'July 15, 2026', time: '2:30 PM' },
-        therapist: { name: 'Jhacel' }
+        service: { id: 0, name: 'Selected service', price: 0 },
+        dateTime: { date: '', dateISO: '', time: '' },
+        therapist: { id: null, name: 'To be assigned' }
     };
 
     try {
-        const stored = sessionStorage.getItem('bookingData');
-        console.log('Confirmpayment - Raw sessionStorage.bookingData:', stored);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            console.log('Confirmpayment - Parsed bookingData:', parsed);
-            if (parsed && parsed.service && parsed.dateTime && parsed.therapist) {
-                bookingData = parsed;
-            }
+        const savedBooking = JSON.parse(sessionStorage.getItem('bookingData') || 'null');
+        if (savedBooking && savedBooking.service && savedBooking.dateTime && savedBooking.therapist) {
+            bookingData = savedBooking;
         }
-    } catch (e) {
-        console.warn('Could not retrieve booking data, using defaults');
+    } catch (error) {
+        console.warn('The booking selection could not be restored.', error);
     }
 
-    console.log('Confirmpayment - Final bookingData:', bookingData);
-    console.log('Confirmpayment - bookingData.service.id:', bookingData.service?.id);
-    console.log('Confirmpayment - bookingData.service.name:', bookingData.service?.name);
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    const indicators = [
+        document.getElementById('step1Indicator'),
+        document.getElementById('step2Indicator'),
+        document.getElementById('step3Indicator')
+    ];
+    const lines = [document.getElementById('stepLine1'), document.getElementById('stepLine2')];
+    const nextButton = document.getElementById('nextBtn');
+    const backButton = document.getElementById('backBtn');
+    const payNowButton = document.getElementById('payNowBtn');
+    const paymentMessage = document.getElementById('paymentMessage');
+    const form = document.getElementById('paymentForm');
+    const qrPaymentModal = document.getElementById('qrPaymentModal');
+    const qrPaymentImage = document.getElementById('qrPaymentImage');
+    const qrPaymentAmount = document.getElementById('qrPaymentAmount');
+    const qrPaymentReference = document.getElementById('qrPaymentReference');
+    const qrPaymentStatus = document.getElementById('qrPaymentStatus');
+    const closeQrPaymentModal = document.getElementById('closeQrPaymentModal');
+    const cancelQrPayment = document.getElementById('cancelQrPayment');
+    let activeQrPayment = null;
+    let qrPollTimer = null;
 
-    const serviceDisplay = bookingData.service.name || 'Celebrity Drip';
-    const servicePrice = bookingData.service.price || '₱1,799.00';
-    const dateDisplay = bookingData.dateTime.date || 'July 15, 2026';
-    const timeDisplay = bookingData.dateTime.time || '2:30 PM';
-    const therapistDisplay = bookingData.therapist.name || 'Jhacel';
+    const price = Number(String(bookingData.service?.price ?? 0).replace(/[^0-9.]/g, '')) || 0;
+    const downpayment = Math.round(price * 50) / 100;
+    setText('servicePrice', formatCurrency(price));
+    setText('paymentAmount', formatCurrency(downpayment));
 
-    // ─── CALCULATE 50% DOWNPAYMENT ─────────────────────────────
-    function calculateDownpayment(priceString) {
-        const numericPrice = parseFloat(priceString.replace(/[₱,]/g, ''));
-        if (isNaN(numericPrice)) return priceString;
-        const downpayment = numericPrice * 0.5;
-        return '₱' + downpayment.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
     }
 
-    // ─── FORMAT DATE FOR DATABASE ─────────────────────────────
-    function formatDateForDB(dateString) {
-        // Preserve the calendar day entered by the customer. Converting a local
-        // Date to ISO/UTC here caused Philippine dates to save one day earlier.
-        const value = String(dateString || '').trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-            return value;
-        }
+    function formatCurrency(value) {
+        return `₱${Number(value || 0).toLocaleString('en-PH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })}`;
+    }
 
-        const numericParts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    function formatDateForDatabase(value) {
+        const dateValue = String(value || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
+
+        const numericParts = dateValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         if (numericParts) {
-            return `${numericParts[3]}-${String(numericParts[1]).padStart(2, '0')}-${String(numericParts[2]).padStart(2, '0')}`;
+            return `${numericParts[3]}-${numericParts[1].padStart(2, '0')}-${numericParts[2].padStart(2, '0')}`;
         }
 
-        const namedParts = value.match(/(?:\w+,\s*)?(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
+        const namedParts = dateValue.match(/(?:\w+,\s*)?(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
         if (namedParts) {
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'];
-            const monthIndex = monthNames.indexOf(namedParts[1]);
-            if (monthIndex !== -1) {
-                return `${namedParts[3]}-${String(monthIndex + 1).padStart(2, '0')}-${String(namedParts[2]).padStart(2, '0')}`;
-            }
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const month = months.indexOf(namedParts[1]);
+            if (month >= 0) return `${namedParts[3]}-${String(month + 1).padStart(2, '0')}-${namedParts[2].padStart(2, '0')}`;
         }
 
-        const localDate = new Date(value);
-        if (Number.isNaN(localDate.getTime())) {
-            return '';
-        }
-        return `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+        const fallback = new Date(dateValue);
+        if (Number.isNaN(fallback.getTime())) return '';
+        return `${fallback.getFullYear()}-${String(fallback.getMonth() + 1).padStart(2, '0')}-${String(fallback.getDate()).padStart(2, '0')}`;
     }
 
-    function normalizePhilippineMobile(phoneValue) {
-        const digits = String(phoneValue || '').replace(/\D/g, '');
-        if (/^09\d{9}$/.test(digits)) {
-            return `+63${digits.slice(1)}`;
-        }
-        if (/^639\d{9}$/.test(digits)) {
-            return `+${digits}`;
-        }
+    function formatTimeForDatabase(value) {
+        const timeValue = String(value || '').trim();
+        if (/^\d{2}:\d{2}(:\d{2})?$/.test(timeValue)) return timeValue;
+
+        const match = timeValue.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (!match) return '';
+
+        let hour = Number(match[1]);
+        if (match[3].toUpperCase() === 'PM' && hour !== 12) hour += 12;
+        if (match[3].toUpperCase() === 'AM' && hour === 12) hour = 0;
+        return `${String(hour).padStart(2, '0')}:${match[2]}:00`;
+    }
+
+    function normalizePhilippineMobile(value) {
+        const digits = String(value || '').replace(/\D/g, '');
+        if (/^09\d{9}$/.test(digits)) return `+63${digits.slice(1)}`;
+        if (/^639\d{9}$/.test(digits)) return `+${digits}`;
         return '';
     }
 
-    // ─── FORMAT TIME FOR DATABASE ─────────────────────────────
-    function formatTimeForDB(timeString) {
-        // Convert "11:00 AM" / "2:30 PM" style strings to "HH:MM:SS" 24-hour format
-        const match = timeString.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-        if (!match) return timeString; // already in a DB-compatible format
-        let hours = parseInt(match[1], 10);
-        const minutes = match[2];
-        const period = match[3].toUpperCase();
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        return `${String(hours).padStart(2, '0')}:${minutes}:00`;
-    }
+    function showStep(number, scroll = true) {
+        step1.style.display = number === 1 ? 'block' : 'none';
+        step2.style.display = number === 2 ? 'flex' : 'none';
+        step3.style.display = number === 3 ? 'flex' : 'none';
 
-    const downpaymentAmount = calculateDownpayment(servicePrice);
-
-    // ─── POPULATE PAYMENT AMOUNT ─────────────────────────────
-    const paymentAmount = document.getElementById('paymentAmount');
-    const servicePriceElement = document.getElementById('servicePrice');
-    if (paymentAmount) paymentAmount.textContent = downpaymentAmount;
-    if (servicePriceElement) servicePriceElement.textContent = servicePrice;
-
-    // ─── POPULATE CONFIRMATION DETAILS (Step 2 preview) ──────
-    const confService = document.getElementById('confService');
-    const confDate = document.getElementById('confDate');
-    const confTime = document.getElementById('confTime');
-    const confTherapist = document.getElementById('confTherapist');
-
-    if (confService) confService.textContent = serviceDisplay;
-    if (confDate) confDate.textContent = dateDisplay;
-    if (confTime) confTime.textContent = timeDisplay;
-    if (confTherapist) confTherapist.textContent = therapistDisplay;
-
-    // ─── GET ELEMENTS ─────────────────────────────────────────
-    const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
-    const step3 = document.getElementById('step3'); // Confirmation
-
-    const step1Indicator = document.getElementById('step1Indicator');
-    const step2Indicator = document.getElementById('step2Indicator');
-    const step3Indicator = document.getElementById('step3Indicator');
-    const stepLine1 = document.getElementById('stepLine1');
-    const stepLine2 = document.getElementById('stepLine2');
-
-    const nextBtn = document.getElementById('nextBtn');
-    const backBtn = document.getElementById('backBtn');
-    const verifyBtn = document.getElementById('verifyBtn'); // Step 2 -> Step 3 (Confirmation)
-    const reviewBackBtn = document.getElementById('reviewBackBtn'); // Step 3 -> Step 2
-    const confirmBookingBtn = document.getElementById('confirmBookingBtn'); // Submits booking
-
-    // ─── STEP 1 → STEP 2 (Next) ──────────────────────────────
-    if (nextBtn) {
-        nextBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            const name = document.getElementById('fullName').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-
-            if (!name || !email || !phone) {
-                alert('Please fill in all required fields (Name, Email, and Contact Number).');
-                return;
-            }
-            if (!email.includes('@') || !email.includes('.')) {
-                alert('Please enter a valid email address.');
-                return;
-            }
-            const normalizedPhone = normalizePhilippineMobile(phone);
-            if (!normalizedPhone) {
-                alert('Please enter a valid Philippine mobile number (09XXXXXXXXX or +639XXXXXXXXX).');
-                return;
-            }
-            document.getElementById('phone').value = normalizedPhone;
-
-            // Transition
-            step1.style.display = 'none';
-            step2.style.display = 'flex';
-
-            step1Indicator.classList.remove('active');
-            step1Indicator.classList.add('completed');
-            step2Indicator.classList.remove('active');
-            step2Indicator.classList.add('active');
-            stepLine1.classList.add('completed');
-
-            step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        indicators.forEach((indicator, index) => {
+            if (!indicator) return;
+            indicator.classList.toggle('active', index === number - 1);
+            indicator.classList.toggle('completed', index < number - 1);
         });
-    }
+        lines.forEach((line, index) => line?.classList.toggle('completed', index < number - 1));
 
-    // ─── STEP 2 → STEP 1 (Back) ──────────────────────────────
-    if (backBtn) {
-        backBtn.addEventListener('click', function() {
-            step2.style.display = 'none';
-            step1.style.display = 'block';
-
-            step2Indicator.classList.remove('active');
-            step1Indicator.classList.remove('completed');
-            step1Indicator.classList.add('active');
-            stepLine1.classList.remove('completed');
-
-            step1.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-    }
-
-    // ─── POPULATE REVIEW (Step 3) ──────────────────────────────
-    function populateReview() {
-        const fullName = document.getElementById('fullName').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        const requests = document.getElementById('requests').value.trim();
-
-        document.getElementById('revService').textContent = serviceDisplay;
-        document.getElementById('revDate').textContent = dateDisplay;
-        document.getElementById('revTime').textContent = timeDisplay;
-        document.getElementById('revTherapist').textContent = therapistDisplay;
-
-        document.getElementById('revName').textContent = fullName;
-        document.getElementById('revEmail').textContent = email;
-        document.getElementById('revPhone').textContent = phone;
-        document.getElementById('revRequests').textContent = requests || 'None';
-
-        document.getElementById('revServicePrice').textContent = servicePrice;
-        document.getElementById('revDownpayment').textContent = downpaymentAmount;
-        // 50% downpayment means the remaining balance equals the same amount
-        document.getElementById('revBalance').textContent = downpaymentAmount;
-    }
-
-    // ─── POPULATE RECEIPT (Step 4) ──────────────────────────────
-    function populateReceipt(bookingDataFromAPI) {
-        // If real booking data is provided, use it
-        if (bookingDataFromAPI) {
-            // Service info from database
-            if (bookingDataFromAPI.service_name) {
-                document.getElementById('confService').textContent = bookingDataFromAPI.service_name;
-            }
-
-            // Date and time from database
-            if (bookingDataFromAPI.booking_date) {
-                const dateObj = new Date(bookingDataFromAPI.booking_date);
-                const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-                document.getElementById('confDate').textContent = dateStr;
-            }
-            if (bookingDataFromAPI.booking_time) {
-                document.getElementById('confTime').textContent = bookingDataFromAPI.booking_time;
-            }
-            // Update combined date/time element
-            const dateTimeElem = document.getElementById('confDateTime');
-            if (dateTimeElem) {
-                const date = document.getElementById('confDate').textContent;
-                const time = document.getElementById('confTime').textContent;
-                dateTimeElem.innerHTML = date + ' at ' + time;
-            }
-
-            // Therapist from database
-            if (bookingDataFromAPI.therapist_name) {
-                document.getElementById('confTherapist').textContent = bookingDataFromAPI.therapist_name;
-            }
-
-            // User info from database
-            if (bookingDataFromAPI.customer_name) {
-                document.getElementById('confUserName').textContent = bookingDataFromAPI.customer_name;
-            }
-
-            // Special requests from database
-            if (bookingDataFromAPI.notes) {
-                document.getElementById('confRequests').textContent = bookingDataFromAPI.notes;
-            }
-        } else {
-            // Fallback to sessionStorage if no real data
-            const stored = sessionStorage.getItem('bookingData');
-            if (stored) {
-                try {
-                    const data = JSON.parse(stored);
-                    if (data.service) {
-                        document.getElementById('confService').textContent = data.service.name || 'Celebrity Drip';
-                    }
-                    if (data.dateTime) {
-                        const date = data.dateTime.date || 'Mar 28, 2026';
-                        const time = data.dateTime.time || '5:00 PM';
-                        document.getElementById('confDate').textContent = date;
-                        document.getElementById('confTime').textContent = time;
-                        const dateTimeElem = document.getElementById('confDateTime');
-                        if (dateTimeElem) {
-                            dateTimeElem.innerHTML = date + ' at ' + time;
-                        }
-                    }
-                    if (data.therapist) {
-                        document.getElementById('confTherapist').textContent = data.therapist.name || 'Jhacel';
-                    }
-                } catch (e) {}
-            }
-
-            const fullName = document.getElementById('fullName').value.trim();
-            document.getElementById('confUserName').textContent = fullName || '<?php echo htmlspecialchars($full_name); ?>';
-
-            const requests = document.getElementById('requests').value.trim();
-            document.getElementById('confRequests').textContent = requests || 'None';
-        }
-
-        // ─── ADD TO CALENDAR (Google Calendar) ──────────────────
-        const calendarBtn = document.getElementById('addToCalendar');
-        if (calendarBtn) {
-            const serviceName = document.getElementById('confService')?.textContent || 'Spa Appointment';
-            const dateText = document.getElementById('confDate')?.textContent || '';
-            const timeText = document.getElementById('confTime')?.textContent || '';
-            // Try to parse a date
-            let startDate = new Date(dateText + ' ' + timeText);
-            if (isNaN(startDate)) {
-                // Try a fallback: use today + 1 hour
-                startDate = new Date();
-                startDate.setHours(startDate.getHours() + 1);
-            }
-            if (!isNaN(startDate)) {
-                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour
-                const startStr = startDate.toISOString().replace(/[-:]/g, '').slice(0, 15);
-                const endStr = endDate.toISOString().replace(/[-:]/g, '').slice(0, 15);
-                const location = 'Cataleya Essence of Beauty and Wellness Center, Gapan City';
-                const details = 'Appointment at Cataleya Essence.';
-                const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(serviceName)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
-                calendarBtn.href = url;
-                calendarBtn.target = '_blank';
-            }
+        if (scroll) {
+            const target = number === 1 ? step1 : number === 2 ? step2 : step3;
+            target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
-    // ─── STEP 2 → STEP 3 (Verify Payment → Confirmation) ────────────
-    if (verifyBtn) {
-        verifyBtn.addEventListener('click', function() {
-            populateReview();
-
-            step2.style.display = 'none';
-            step3.style.display = 'flex';
-
-            step2Indicator.classList.remove('active');
-            step2Indicator.classList.add('completed');
-            step3Indicator.classList.add('active');
-            stepLine2.classList.add('completed');
-
-            step3.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+    function setPaymentMessage(message = '', kind = '') {
+        if (!paymentMessage) return;
+        paymentMessage.textContent = message;
+        paymentMessage.className = `payment-message${kind ? ` payment-message--${kind}` : ''}`;
     }
 
-    // ─── STEP 3 → STEP 2 (Back to Payment) ────────────────────
-    if (reviewBackBtn) {
-        reviewBackBtn.addEventListener('click', function() {
-            step3.style.display = 'none';
-            step2.style.display = 'flex';
+    function customerDetails() {
+        const fullName = document.getElementById('fullName')?.value.trim() || '';
+        const email = document.getElementById('email')?.value.trim() || '';
+        const phoneInput = document.getElementById('phone');
+        const phone = normalizePhilippineMobile(phoneInput?.value || '');
+        const specialRequests = document.getElementById('requests')?.value.trim() || '';
 
-            step3Indicator.classList.remove('active');
-            step2Indicator.classList.remove('completed');
-            step2Indicator.classList.add('active');
-            stepLine2.classList.remove('completed');
+        if (!fullName || !email || !phone) {
+            throw new Error('Fill in your name, email, and valid Philippine mobile number.');
+        }
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+            throw new Error('Please enter a valid email address.');
+        }
+        if (phoneInput) phoneInput.value = phone;
 
-            step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+        return { full_name: fullName, email, phone, special_requests: specialRequests };
     }
 
-    // ─── STEP 3: Confirm Booking (Show Success Popup) ────────────
-    if (confirmBookingBtn) {
-        let bookingSubmissionInProgress = false;
+    function checkoutPayload() {
+        const customer = customerDetails();
+        const bookingDate = bookingData.dateTime?.dateISO || formatDateForDatabase(bookingData.dateTime?.date);
+        const bookingTime = formatTimeForDatabase(bookingData.dateTime?.time);
+        const serviceId = Number(bookingData.service?.id || 0);
+        const staffId = Number(bookingData.therapist?.id || 0);
 
-        confirmBookingBtn.addEventListener('click', function() {
-            if (bookingSubmissionInProgress) {
-                return;
-            }
+        if (!serviceId || !bookingDate || !bookingTime) {
+            throw new Error('Your booking selection is incomplete. Please choose a service, date, time, and therapist again.');
+        }
 
-            const fullName = document.getElementById('fullName').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const requests = document.getElementById('requests').value.trim();
+        return {
+            ...customer,
+            service_id: serviceId,
+            booking_date: bookingDate,
+            booking_time: bookingTime,
+            staff_id: staffId || null
+        };
+    }
 
-            const normalizedPhone = normalizePhilippineMobile(phone);
-            if (!normalizedPhone) {
-                alert('Please enter a valid Philippine mobile number (09XXXXXXXXX or +639XXXXXXXXX).');
-                return;
-            }
-            document.getElementById('phone').value = normalizedPhone;
+    async function readJson(response) {
+        const responseData = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(responseData.error || 'Something went wrong. Please try again.');
+        return responseData;
+    }
 
-            bookingSubmissionInProgress = true;
+    function setQrPaymentStatus(message, kind = '') {
+        if (!qrPaymentStatus) return;
+        qrPaymentStatus.textContent = message;
+        qrPaymentStatus.className = `qr-payment-modal__status${kind ? ` qr-payment-modal__status--${kind}` : ''}`;
+    }
 
-            const bookingDataPayload = {
-                full_name: fullName,
-                email: email,
-                phone: normalizedPhone,
-                special_requests: requests,
-                service_name: bookingData.service?.name || 'Celebrity Drip',
-                service_id: bookingData.service?.id || 0,
-                service_price: parseFloat(servicePrice.replace(/[₱,]/g, '')),
-                booking_date: bookingData.dateTime?.dateISO || formatDateForDB(dateDisplay),
-                booking_time: formatTimeForDB(timeDisplay),
-                staff_id: bookingData.therapist?.id || null
-            };
+    function openQrPaymentPopup(payment) {
+        if (!qrPaymentModal || !qrPaymentImage) return;
+        qrPaymentImage.src = payment.imageUrl;
+        setText('qrPaymentAmount', formatCurrency(payment.amount));
+        setText('qrPaymentReference', payment.referenceNumber || '—');
+        setQrPaymentStatus('Waiting for PayMongo to confirm your QR payment…');
+        qrPaymentModal.hidden = false;
+        document.body.classList.add('qr-payment-modal-open');
+        closeQrPaymentModal?.focus();
+    }
 
-            console.log('Confirmpayment - bookingDataPayload:', bookingDataPayload);
-            console.log('Confirmpayment - service_id being sent:', bookingDataPayload.service_id);
-            console.log('Confirmpayment - service_id type:', typeof bookingDataPayload.service_id);
-            console.log('Confirmpayment - service_id === 0:', bookingDataPayload.service_id === 0);
-            console.log('Confirmpayment - service_id === null:', bookingDataPayload.service_id === null);
-            console.log('Confirmpayment - service_id === undefined:', bookingDataPayload.service_id === undefined);
+    function closeQrPaymentPopup() {
+        if (!qrPaymentModal) return;
+        qrPaymentModal.hidden = true;
+        document.body.classList.remove('qr-payment-modal-open');
+    }
 
-            confirmBookingBtn.disabled = true;
-            confirmBookingBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Processing...';
+    function stopQrPaymentPolling() {
+        if (qrPollTimer) {
+            window.clearTimeout(qrPollTimer);
+            qrPollTimer = null;
+        }
+    }
 
-            fetch('../api/create_booking.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bookingDataPayload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success popup
-                    showSuccessPopup(data.booking);
-                } else {
-                    alert('Error creating booking: ' + (data.error || 'Unknown error'));
-                    bookingSubmissionInProgress = false;
-                    confirmBookingBtn.disabled = false;
-                    confirmBookingBtn.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i> Confirm Booking';
+    function qrImageSource(value) {
+        const source = String(value || '').trim();
+        if (/^data:image\/(png|jpeg|webp);base64,/i.test(source)) return source;
+        if (/^[A-Za-z0-9+/=\r\n]+$/.test(source)) return `data:image/png;base64,${source.replace(/\s/g, '')}`;
+        throw new Error('PayMongo did not return a usable QR image. Please try again.');
+    }
+
+    async function paymongoPublicRequest(url, publicKey, payload) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${btoa(`${publicKey}:`)}`
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const detail = data?.errors?.[0]?.detail || data?.errors?.[0]?.code || 'PayMongo could not prepare the QR code.';
+            throw new Error(detail);
+        }
+        return data;
+    }
+
+    async function attachQrPaymentMethod(payment, customer) {
+        const paymentMethod = await paymongoPublicRequest('https://api.paymongo.com/v1/payment_methods', payment.publicKey, {
+            data: {
+                attributes: {
+                    type: 'qrph',
+                    billing: {
+                        name: customer.full_name,
+                        email: customer.email,
+                        phone: customer.phone
+                    },
+                    expiry_seconds: 1800
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error creating booking. Please try again.');
-                bookingSubmissionInProgress = false;
-                confirmBookingBtn.disabled = false;
-                confirmBookingBtn.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i> Confirm Booking';
-            });
-        });
-    }
-
-    // ─── SHOW SUCCESS POPUP ──────────────────────────────────
-    function showSuccessPopup(bookingData) {
-        // Create popup element if it doesn't exist
-        let popup = document.getElementById('successPopup');
-        if (!popup) {
-            popup = document.createElement('div');
-            popup.id = 'successPopup';
-            popup.className = 'success-popup';
-            document.body.appendChild(popup);
-        }
-
-        const bookingRef = 'CAT-' + String(bookingData.booking_id).padStart(6, '0');
-        
-        popup.innerHTML = `
-            <div class="success-popup-content">
-                <div class="success-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <h2>Booking Confirmed!</h2>
-                <p>Your appointment has been successfully booked.</p>
-                <div class="booking-details-popup">
-                    <div class="popup-detail">
-                        <span class="popup-label">Booking Reference:</span>
-                        <span class="popup-value">${bookingRef}</span>
-                    </div>
-                    <div class="popup-detail">
-                        <span class="popup-label">Service:</span>
-                        <span class="popup-value">${bookingData.service_name || serviceDisplay}</span>
-                    </div>
-                    <div class="popup-detail">
-                        <span class="popup-label">Date:</span>
-                        <span class="popup-value">${dateDisplay} at ${timeDisplay}</span>
-                    </div>
-                </div>
-                <p class="email-notice">
-                    <i class="fas fa-envelope"></i> A booking receipt has been sent to your email.
-                </p>
-                <button class="btn-close-popup" onclick="closeSuccessPopup()">
-                    <i class="fas fa-home"></i> Back to Home
-                </button>
-            </div>
-        `;
-
-        popup.style.display = 'flex';
-    }
-
-    // ─── CLOSE SUCCESS POPUP ──────────────────────────────────
-    window.closeSuccessPopup = function() {
-        const popup = document.getElementById('successPopup');
-        if (popup) {
-            popup.style.display = 'none';
-            window.location.href = 'home.php';
-        }
-    };
-
-    // ─── ENTER KEY SUPPORT ──────────────────────────────────
-    const form = document.getElementById('paymentForm');
-    if (form) {
-        form.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-                e.preventDefault();
-                if (nextBtn) nextBtn.click();
             }
         });
+        const paymentMethodId = paymentMethod?.data?.id;
+        if (!paymentMethodId) throw new Error('PayMongo could not create the QR payment method. Please try again.');
+
+        const paymentIntent = await paymongoPublicRequest(
+            `https://api.paymongo.com/v1/payment_intents/${encodeURIComponent(payment.paymentIntentId)}/attach`,
+            payment.publicKey,
+            {
+                data: {
+                    attributes: {
+                        payment_method: paymentMethodId,
+                        client_key: payment.clientKey
+                    }
+                }
+            }
+        );
+        return qrImageSource(paymentIntent?.data?.attributes?.next_action?.code?.image_url);
     }
 
+    async function pollQrPayment(token) {
+        if (!activeQrPayment || activeQrPayment.token !== token) return;
+        try {
+            const response = await fetch('../api/verify_paymongo_checkout.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({ token })
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data.success && data.booking) {
+                stopQrPaymentPolling();
+                closeQrPaymentPopup();
+                showConfirmedBooking(data.booking);
+                return;
+            }
+
+            if (data.state === 'pending') {
+                setQrPaymentStatus('QR is ready. Waiting for PayMongo to confirm your payment…');
+                qrPollTimer = window.setTimeout(() => pollQrPayment(token), 2500);
+                return;
+            }
+
+            setQrPaymentStatus(data.error || 'Unable to check the payment yet. Retrying securely…', 'error');
+            qrPollTimer = window.setTimeout(() => pollQrPayment(token), 5000);
+        } catch (error) {
+            setQrPaymentStatus('Connection interrupted. Retrying payment confirmation…', 'error');
+            qrPollTimer = window.setTimeout(() => pollQrPayment(token), 5000);
+        }
+    }
+
+    function startQrPaymentPolling(token) {
+        stopQrPaymentPolling();
+        pollQrPayment(token);
+    }
+
+    [closeQrPaymentModal, cancelQrPayment, qrPaymentModal?.querySelector('[data-qr-close]')]
+        .filter(Boolean)
+        .forEach((element) => element.addEventListener('click', closeQrPaymentPopup));
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !qrPaymentModal?.hidden) closeQrPaymentPopup();
+    });
+
+    nextButton?.addEventListener('click', (event) => {
+        event.preventDefault();
+        try {
+            customerDetails();
+            setPaymentMessage('');
+            showStep(2);
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+
+    backButton?.addEventListener('click', () => showStep(1));
+
+    // Temporary placeholder-QR flow. This is separate from the PayMongo
+    // checkout handler below, which uses #payNowBtn when that UI is restored.
+    const placeholderVerifyButton = document.getElementById('verifyBtn');
+    const placeholderReviewBackButton = document.getElementById('reviewBackBtn');
+    const placeholderConfirmBookingButton = document.getElementById('confirmBookingBtn');
+    let placeholderBookingSubmissionInProgress = false;
+
+    function showPlaceholderReview() {
+        let customer;
+        try {
+            customer = customerDetails();
+        } catch (error) {
+            alert(error.message);
+            return;
+        }
+
+        const bookingDate = bookingData.dateTime?.dateISO || formatDateForDatabase(bookingData.dateTime?.date);
+        const bookingTime = formatTimeForDatabase(bookingData.dateTime?.time);
+        setText('revService', bookingData.service?.name || 'Selected service');
+        setText('revDate', formattedBookingDate(bookingDate) || bookingData.dateTime?.date || '-');
+        setText('revTime', formattedBookingTime(bookingTime) || bookingData.dateTime?.time || '-');
+        setText('revTherapist', bookingData.therapist?.name || 'To be assigned');
+        setText('revName', customer.full_name);
+        setText('revEmail', customer.email);
+        setText('revPhone', customer.phone);
+        setText('revRequests', customer.special_requests || 'None');
+        setText('revServicePrice', formatCurrency(price));
+        setText('revDownpayment', formatCurrency(downpayment));
+        setText('revBalance', formatCurrency(price - downpayment));
+
+        showStep(3);
+    }
+
+    placeholderVerifyButton?.addEventListener('click', (event) => {
+        event.preventDefault();
+        showPlaceholderReview();
+    });
+
+    placeholderReviewBackButton?.addEventListener('click', (event) => {
+        event.preventDefault();
+        showStep(2);
+    });
+
+    placeholderConfirmBookingButton?.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (placeholderBookingSubmissionInProgress) return;
+
+        let payload;
+        try {
+            payload = checkoutPayload();
+        } catch (error) {
+            alert(error.message);
+            return;
+        }
+
+        placeholderBookingSubmissionInProgress = true;
+        const originalLabel = placeholderConfirmBookingButton.innerHTML;
+        placeholderConfirmBookingButton.disabled = true;
+        placeholderConfirmBookingButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Confirming Booking...';
+
+        try {
+            const response = await fetch('../api/create_placeholder_booking.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await readJson(response);
+
+            if (!data.success || !data.booking) {
+                throw new Error(data.error || 'Unable to confirm the booking. Please try again.');
+            }
+
+            showConfirmedBooking(data.booking);
+            const actionArea = placeholderConfirmBookingButton.closest('.payment-actions');
+            if (actionArea) {
+                actionArea.innerHTML = '<a href="bookings.php" class="btn-verify confirmed-booking-link"><i class="fas fa-calendar-check" style="margin-right:8px;"></i> View My Bookings</a>';
+            }
+        } catch (error) {
+            alert(error.message || 'Unable to confirm the booking. Please try again.');
+            placeholderBookingSubmissionInProgress = false;
+            placeholderConfirmBookingButton.disabled = false;
+            placeholderConfirmBookingButton.innerHTML = originalLabel;
+        }
+    });
+
+    payNowButton?.addEventListener('click', async () => {
+        if (activeQrPayment?.imageUrl) {
+            openQrPaymentPopup(activeQrPayment);
+            startQrPaymentPolling(activeQrPayment.token);
+            return;
+        }
+
+        let qrPayload;
+        let customer;
+        try {
+            qrPayload = checkoutPayload();
+            customer = customerDetails();
+        } catch (error) {
+            setPaymentMessage(error.message, 'error');
+            return;
+        }
+
+        const legacyOriginalLabel = payNowButton.innerHTML;
+        payNowButton.disabled = true;
+        payNowButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Preparing QR code...';
+        setPaymentMessage('Preparing your one-time QR code securely...', 'loading');
+
+        try {
+            const response = await fetch('../api/create_paymongo_checkout.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(qrPayload)
+            });
+            const data = await readJson(response);
+            if (!data.payment_intent_id || !data.client_key || !data.public_key || !data.token) {
+                throw new Error('PayMongo could not prepare the QR payment. Please try again.');
+            }
+
+            const payment = {
+                paymentIntentId: data.payment_intent_id,
+                clientKey: data.client_key,
+                publicKey: data.public_key,
+                token: data.token,
+                referenceNumber: data.reference_number,
+                amount: Number(data.downpayment_amount || downpayment)
+            };
+            const imageUrl = await attachQrPaymentMethod(payment, customer);
+            activeQrPayment = { ...payment, imageUrl };
+            setPaymentMessage('Scan the QR code in the popup. Your booking will confirm automatically after payment.', 'loading');
+            openQrPaymentPopup(activeQrPayment);
+            startQrPaymentPolling(activeQrPayment.token);
+        } catch (error) {
+            setPaymentMessage(error.message || 'Unable to prepare the secure QR payment. Please try again.', 'error');
+        } finally {
+            payNowButton.disabled = false;
+            payNowButton.innerHTML = legacyOriginalLabel;
+        }
+        /* The former hosted-checkout implementation is intentionally kept
+           disabled: QR Ph now renders inside the modal above. */
+        /*
+        let payload;
+        try {
+            payload = checkoutPayload();
+        } catch (error) {
+            setPaymentMessage(error.message, 'error');
+            return;
+        }
+
+        const originalLabel = payNowButton.innerHTML;
+        payNowButton.disabled = true;
+        payNowButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Opening secure QR checkout...';
+        setPaymentMessage('Connecting to PayMongo securely…', 'loading');
+
+        try {
+            const response = await fetch('../api/create_paymongo_checkout.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await readJson(response);
+            throw new Error('This legacy block is disabled.');
+        } catch (error) {
+            setPaymentMessage(error.message || 'Unable to open secure QR payment. Please try again.', 'error');
+            payNowButton.disabled = false;
+            payNowButton.innerHTML = originalLabel;
+        }
+        */
+    });
+
+    function formattedBookingDate(date) {
+        if (!date) return '-';
+        const localDate = new Date(`${date}T12:00:00`);
+        return Number.isNaN(localDate.getTime())
+            ? date
+            : localDate.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    function formattedBookingTime(time) {
+        const match = String(time || '').match(/^(\d{1,2}):(\d{2})/);
+        if (!match) return time || '-';
+        const hour = Number(match[1]);
+        const suffix = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${match[2]} ${suffix}`;
+    }
+
+    function showConfirmedBooking(booking) {
+        const total = Number(booking.total_amount || 0);
+        const paid = Math.round(total * 50) / 100;
+        const bookingReference = booking.booking_id ? `CAT-${String(booking.booking_id).padStart(6, '0')}` : '-';
+
+        setText('revService', booking.service_name || bookingData.service?.name || '-');
+        setText('revDate', formattedBookingDate(booking.booking_date));
+        setText('revTime', formattedBookingTime(booking.booking_time));
+        setText('revTherapist', booking.therapist_name || 'To be assigned');
+        setText('revName', booking.customer_name || document.getElementById('fullName')?.value || '-');
+        setText('revEmail', booking.customer_email || document.getElementById('email')?.value || '-');
+        setText('revPhone', booking.customer_phone || document.getElementById('phone')?.value || '-');
+        setText('revRequests', booking.notes || 'None');
+        setText('revServicePrice', formatCurrency(total));
+        setText('revDownpayment', formatCurrency(paid));
+        setText('revBalance', formatCurrency(total - paid));
+
+        const title = step3?.querySelector('.review-header h2');
+        const subtitle = step3?.querySelector('.review-subtitle');
+        if (title) title.textContent = `Payment Confirmed · ${bookingReference}`;
+        if (subtitle) subtitle.textContent = 'Your downpayment was received and your appointment is confirmed.';
+
+        sessionStorage.removeItem('bookingData');
+        showStep(3, false);
+        step3?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function verifyReturnedPayment(token, attempt = 0) {
+        const response = await fetch('../api/verify_paymongo_checkout.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ token })
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (response.ok && data.success && data.booking) {
+            showConfirmedBooking(data.booking);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+        }
+
+        if (data.state === 'pending' && attempt < 4) {
+            setPaymentMessage('Payment received. Confirming your booking…', 'loading');
+            window.setTimeout(() => verifyReturnedPayment(token, attempt + 1), 1500);
+            return;
+        }
+
+        setPaymentMessage(data.error || 'We could not confirm the payment yet. Please refresh shortly or contact the spa.', 'error');
+        if (payNowButton) payNowButton.disabled = false;
+    }
+
+    const returnParameters = new URLSearchParams(window.location.search);
+    const returnState = returnParameters.get('payment_return');
+    const returnToken = returnParameters.get('token') || '';
+    if (returnState === 'success' && /^[a-f0-9]{64}$/.test(returnToken)) {
+        showStep(2, false);
+        if (payNowButton) payNowButton.disabled = true;
+        setPaymentMessage('Checking your PayMongo payment…', 'loading');
+        verifyReturnedPayment(returnToken);
+    } else if (returnState === 'cancel') {
+        showStep(2, false);
+        setPaymentMessage('Payment was not completed. No booking was created.', 'error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    form?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+            event.preventDefault();
+            nextButton?.click();
+        }
+    });
 });

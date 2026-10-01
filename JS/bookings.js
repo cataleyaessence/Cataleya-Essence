@@ -53,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const rescheduleService = document.getElementById('rescheduleService');
     const rescheduleDate = document.getElementById('rescheduleDate');
     const rescheduleTime = document.getElementById('rescheduleTime');
+    const rescheduleReason = document.getElementById('rescheduleReason');
+    const rescheduleReasonDetails = document.getElementById('rescheduleReasonDetails');
     const rescheduleMessage = document.getElementById('rescheduleMessage');
     const confirmReschedule = document.getElementById('confirmReschedule');
     const bookingCsrfToken = window.bookingPageConfig?.csrfToken || '';
@@ -139,19 +141,16 @@ document.addEventListener('DOMContentLoaded', function () {
         setRescheduleMessage('');
 
         try {
-            const response = await fetch(`../api/get_availability.php?date=${encodeURIComponent(rescheduleDate.value)}`);
+            const response = await fetch(`../api/get_time_slots.php?date=${encodeURIComponent(rescheduleDate.value)}`);
             const data = await response.json();
-            if (!response.ok || !data.success || !Array.isArray(data.slots)) {
+            if (!response.ok || !data.success || !Array.isArray(data.data)) {
                 throw new Error(data.error || 'Unable to load time slots.');
             }
 
             const now = new Date();
-            const availableSlots = data.slots.filter(slot => {
-                const current = Number(slot.current_bookings || 0);
-                const maximum = Number(slot.max_bookings || 1);
+            const availableSlots = data.data.filter(slot => {
                 const slotDateTime = new Date(`${rescheduleDate.value}T${String(slot.slot_time).slice(0, 8)}`);
-                return current < maximum
-                    && !['booked', 'unavailable'].includes(slot.status)
+                return slot.status === 'available'
                     && !Number.isNaN(slotDateTime.getTime())
                     && slotDateTime > now;
             });
@@ -160,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
             availableSlots.forEach(slot => {
                 const option = document.createElement('option');
                 option.value = slot.slot_time;
-                option.textContent = slot.display_time;
+                option.textContent = slot.time || slot.display_time;
                 rescheduleTime.appendChild(option);
             });
             rescheduleTime.disabled = availableSlots.length === 0;
@@ -182,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function openRescheduleModal(button) {
-        if (!rescheduleModal || !rescheduleBookingId || !rescheduleService || !rescheduleDate || !rescheduleTime) return;
+        if (!rescheduleModal || !rescheduleBookingId || !rescheduleService || !rescheduleDate || !rescheduleTime || !rescheduleReason) return;
 
         const today = localDateValue();
         const originalDate = button.dataset.bookingDate || '';
@@ -194,6 +193,8 @@ document.addEventListener('DOMContentLoaded', function () {
         rescheduleDate.value = originalDate >= today ? originalDate : today;
         rescheduleTime.disabled = true;
         rescheduleTime.innerHTML = '<option value="">Loading available times...</option>';
+        rescheduleReason.value = '';
+        if (rescheduleReasonDetails) rescheduleReasonDetails.value = '';
         setRescheduleMessage('');
         rescheduleModal.classList.add('active');
         rescheduleModal.setAttribute('aria-hidden', 'false');
@@ -260,8 +261,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (rescheduleForm) {
         rescheduleForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            if (!rescheduleBookingId.value || !rescheduleService.value || !rescheduleDate.value || !rescheduleTime.value) {
-                setRescheduleMessage('Choose a service, date, and available time.', 'error');
+            const reason = rescheduleReason?.value.trim() || '';
+            const reasonDetails = rescheduleReasonDetails?.value.trim() || '';
+            if (!rescheduleBookingId.value || !rescheduleService.value || !rescheduleDate.value || !rescheduleTime.value || !reason) {
+                setRescheduleMessage('Choose a service, date, available time, and reason.', 'error');
+                return;
+            }
+
+            if (reasonDetails.length > 500) {
+                setRescheduleMessage('Additional details must be 500 characters or fewer.', 'error');
                 return;
             }
 
@@ -287,7 +295,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         booking_id: Number(rescheduleBookingId.value),
                         service_id: Number(rescheduleService.value),
                         booking_date: rescheduleDate.value,
-                        booking_time: rescheduleTime.value
+                        booking_time: rescheduleTime.value,
+                        reschedule_reason: reason,
+                        reason_details: reasonDetails
                     })
                 });
                 const data = await response.json();

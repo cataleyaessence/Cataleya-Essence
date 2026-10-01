@@ -42,6 +42,7 @@ CREATE TABLE `bookings` (
   `auto_cancelled` tinyint(1) DEFAULT '0',
   `total_amount` decimal(10,2) NOT NULL,
   `notes` text,
+  `reschedule_reason` varchar(1000) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `active_user_slot_key` varchar(128) GENERATED ALWAYS AS (case when (`status` in (_utf8mb4'confirmed',_utf8mb4'rescheduled')) then concat(`user_id`,_utf8mb4'|',`booking_date`,_utf8mb4'|',`booking_time`) else NULL end) STORED,
@@ -151,7 +152,7 @@ CREATE TABLE `payments` (
   `booking_id` int NOT NULL,
   `user_id` int NOT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `payment_method` enum('cash','gcash','card','bank_transfer') NOT NULL,
+  `payment_method` enum('cash','gcash','qrph','card','bank_transfer') NOT NULL,
   `status` enum('pending','completed','failed','refunded') DEFAULT 'pending',
   `transaction_id` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -402,6 +403,40 @@ INSERT INTO `time_slots` (`id`, `slot_time`, `display_time`, `is_active`, `sort_
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `payment_checkouts`
+--
+
+CREATE TABLE `payment_checkouts` (
+  `id` bigint unsigned NOT NULL,
+  `checkout_session_id` varchar(100) NOT NULL,
+  `return_token` char(64) NOT NULL,
+  `reference_number` varchar(100) NOT NULL,
+  `idempotency_key` varchar(128) NOT NULL,
+  `user_id` int NOT NULL,
+  `service_id` int NOT NULL,
+  `staff_id` int DEFAULT NULL,
+  `slot_id` int NOT NULL,
+  `booking_date` date NOT NULL,
+  `booking_time` time NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `special_requests` text,
+  `total_amount` decimal(10,2) NOT NULL,
+  `downpayment_amount` decimal(10,2) NOT NULL,
+  `payment_method` varchar(50) DEFAULT NULL,
+  `payment_id` varchar(100) DEFAULT NULL,
+  `status` enum('created','paid','fulfilled','failed','expired','conflict') NOT NULL DEFAULT 'created',
+  `booking_id` int DEFAULT NULL,
+  `paid_at` datetime DEFAULT NULL,
+  `fulfilled_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -490,6 +525,21 @@ ALTER TABLE `payments`
   ADD PRIMARY KEY (`id`),
   ADD KEY `booking_id` (`booking_id`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `payment_checkouts`
+--
+ALTER TABLE `payment_checkouts`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_payment_checkouts_session` (`checkout_session_id`),
+  ADD UNIQUE KEY `uq_payment_checkouts_return_token` (`return_token`),
+  ADD UNIQUE KEY `uq_payment_checkouts_reference` (`reference_number`),
+  ADD UNIQUE KEY `uq_payment_checkouts_idempotency` (`idempotency_key`),
+  ADD UNIQUE KEY `uq_payment_checkouts_booking` (`booking_id`),
+  ADD KEY `idx_payment_checkouts_user_status` (`user_id`,`status`),
+  ADD KEY `service_id` (`service_id`),
+  ADD KEY `staff_id` (`staff_id`),
+  ADD KEY `slot_id` (`slot_id`);
 
 --
 -- Indexes for table `reviews`
@@ -596,6 +646,12 @@ ALTER TABLE `payments`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `payment_checkouts`
+--
+ALTER TABLE `payment_checkouts`
+  MODIFY `id` bigint unsigned NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `reviews`
 --
 ALTER TABLE `reviews`
@@ -685,6 +741,16 @@ ALTER TABLE `otp_codes`
 ALTER TABLE `payments`
   ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `payment_checkouts`
+--
+ALTER TABLE `payment_checkouts`
+  ADD CONSTRAINT `fk_payment_checkouts_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_payment_checkouts_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_payment_checkouts_staff` FOREIGN KEY (`staff_id`) REFERENCES `staff` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_payment_checkouts_slot` FOREIGN KEY (`slot_id`) REFERENCES `time_slots` (`id`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_payment_checkouts_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `reviews`

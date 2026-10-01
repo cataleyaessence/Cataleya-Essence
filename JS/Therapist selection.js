@@ -49,14 +49,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ─── THERAPIST SELECTION LOGIC ─────────────────────────────
     const cards = document.querySelectorAll('.therapist-card');
+    const therapistGrid = document.getElementById('therapistGrid');
     let selectedId = null;
 
     // ─── SELECT THERAPIST & NAVIGATE TO PAYMENT ────────────
     const selectBtns = document.querySelectorAll('.select-btn');
 
+    function setTherapistAvailability(card, available, unavailableReason = '') {
+        const button = card.querySelector('.select-btn');
+        const availabilityLabel = card.querySelector('.therapist-availability');
+        card.classList.toggle('unavailable', !available);
+        card.setAttribute('aria-disabled', String(!available));
+
+        if (!button) {
+            return;
+        }
+
+        button.disabled = !available;
+        if (available) {
+            button.textContent = button.classList.contains('selected') ? 'Selected' : 'Select';
+            if (availabilityLabel) availabilityLabel.textContent = 'Available for your selected time';
+        } else {
+            button.classList.remove('selected');
+            button.textContent = 'Unavailable';
+            if (availabilityLabel) {
+                availabilityLabel.textContent = unavailableReason === 'daily_limit'
+                    ? 'Fully booked for this day (3 of 3)'
+                    : 'Already booked at this time';
+            }
+            card.classList.remove('selected');
+            if (selectedId === Number(button.dataset.id)) selectedId = null;
+        }
+    }
+
+    async function loadTherapistAvailability() {
+        const bookingDateTime = JSON.parse(sessionStorage.getItem('bookingDateTime') || '{}');
+        const date = bookingDateTime.dateISO || '';
+        const time = bookingDateTime.slotTime || bookingDateTime.time || '';
+        const category = therapistGrid?.dataset.category || '';
+
+        if (!date || !time || !category) {
+            cards.forEach((card) => {
+                setTherapistAvailability(card, false);
+                const label = card.querySelector('.therapist-availability');
+                if (label) label.textContent = 'Select a date and time first';
+            });
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `../api/get_staff_availability.php?category=${encodeURIComponent(category)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`,
+                { cache: 'no-store', credentials: 'same-origin' }
+            );
+            const result = await response.json();
+            if (!response.ok || !result.success || !Array.isArray(result.data)) {
+                throw new Error(result.error || 'Unable to check therapist availability.');
+            }
+
+            const availabilityById = new Map(result.data.map((staff) => [Number(staff.id), staff]));
+            cards.forEach((card) => {
+                const staffAvailability = availabilityById.get(Number(card.dataset.id));
+                setTherapistAvailability(
+                    card,
+                    staffAvailability?.available === true,
+                    staffAvailability?.unavailable_reason || ''
+                );
+            });
+        } catch (error) {
+            cards.forEach((card) => {
+                setTherapistAvailability(card, false);
+                const label = card.querySelector('.therapist-availability');
+                if (label) label.textContent = 'Availability check failed. Please try again.';
+            });
+        }
+    }
+
     selectBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
+
+            if (this.disabled) {
+                return;
+            }
 
             const card = this.closest('.therapist-card');
             const id = parseInt(this.dataset.id);
@@ -121,8 +196,11 @@ document.addEventListener('DOMContentLoaded', function() {
     cards.forEach(card => {
         card.addEventListener('click', function() {
             const btn = this.querySelector('.select-btn');
-            if (btn) btn.click();
+            if (btn && !btn.disabled) btn.click();
         });
     });
+
+    loadTherapistAvailability();
+    window.setInterval(loadTherapistAvailability, 30000);
 
 });

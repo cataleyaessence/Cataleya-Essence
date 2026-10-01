@@ -95,16 +95,111 @@ body.admin-page {
     color: inherit;
 }
 
+.admin-nav-toggle,
+.admin-nav-overlay {
+    display: none;
+}
+
 @media (max-width: 768px) {
     :root {
         --sidebar-w: 0px;
     }
 
     .sidebar {
-        display: none;
+        display: flex !important;
+        width: min(288px, 86vw) !important;
+        padding-top: 16px;
+        transform: translateX(-110%);
+        transition: transform .22s ease;
+        will-change: transform;
+        z-index: 510;
+    }
+
+    body.admin-navigation-open {
+        overflow: hidden;
+    }
+
+    body.admin-navigation-open .sidebar {
+        transform: translateX(0);
+    }
+
+    .admin-nav-toggle {
+        display: inline-grid;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        place-items: center;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--white, #fff);
+        color: var(--text-dark);
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .admin-nav-toggle:hover,
+    .admin-nav-toggle:focus-visible {
+        border-color: rgba(233, 30, 122, .35);
+        background: var(--pink-light);
+        color: var(--pink-accent);
+        outline: none;
+    }
+
+    .admin-nav-overlay {
+        position: fixed;
+        z-index: 500;
+        display: block;
+        inset: var(--navbar-h) 0 0;
+        background: rgba(45, 21, 32, .38);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .22s ease;
+    }
+
+    body.admin-navigation-open .admin-nav-overlay {
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .main {
-        margin-left: 0;
+        min-width: 0;
+        margin-left: 0 !important;
+    }
+
+    .navbar {
+        gap: 10px;
+    }
+
+    .navbar-brand {
+        min-width: 0;
+    }
+
+    .navbar-user {
+        margin-left: auto;
+    }
+
+    .navbar-user .user-info {
+        display: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-nav-toggle {
+        width: 35px;
+        height: 35px;
+        flex-basis: 35px;
+    }
+
+    .navbar-brand-sub {
+        display: none;
+    }
+
+    .navbar-brand-name {
+        overflow: hidden;
+        max-width: 150px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }

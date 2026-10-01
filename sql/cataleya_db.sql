@@ -65,6 +65,7 @@ CREATE TABLE bookings (
     auto_cancelled BOOLEAN DEFAULT 0,
     total_amount DECIMAL(10, 2) NOT NULL,
     notes TEXT,
+    reschedule_reason VARCHAR(1000) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     active_user_slot_key VARCHAR(128) GENERATED ALWAYS AS (
@@ -131,7 +132,7 @@ CREATE TABLE payments (
     booking_id INT NOT NULL,
     user_id INT NOT NULL,
     amount DECIMAL(10, 2) NOT NULL,
-    payment_method ENUM('cash', 'gcash', 'card', 'bank_transfer') NOT NULL,
+    payment_method ENUM('cash', 'gcash', 'qrph', 'card', 'bank_transfer') NOT NULL,
     status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
     transaction_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -208,6 +209,41 @@ CREATE TABLE daily_slot_availability (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (slot_id) REFERENCES time_slots(id) ON DELETE CASCADE,
     UNIQUE KEY (slot_date, slot_id)
+);
+
+-- PayMongo Checkout Sessions (unpaid booking drafts and verified fulfillment)
+CREATE TABLE payment_checkouts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    checkout_session_id VARCHAR(100) NOT NULL UNIQUE,
+    return_token CHAR(64) NOT NULL UNIQUE,
+    reference_number VARCHAR(100) NOT NULL UNIQUE,
+    idempotency_key VARCHAR(128) NOT NULL UNIQUE,
+    user_id INT NOT NULL,
+    service_id INT NOT NULL,
+    staff_id INT NULL,
+    slot_id INT NOT NULL,
+    booking_date DATE NOT NULL,
+    booking_time TIME NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    special_requests TEXT,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    downpayment_amount DECIMAL(10, 2) NOT NULL,
+    payment_method VARCHAR(50),
+    payment_id VARCHAR(100),
+    status ENUM('created', 'paid', 'fulfilled', 'failed', 'expired', 'conflict') NOT NULL DEFAULT 'created',
+    booking_id INT NULL UNIQUE,
+    paid_at DATETIME NULL,
+    fulfilled_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_payment_checkouts_user_status (user_id, status),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE,
+    FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE SET NULL,
+    FOREIGN KEY (slot_id) REFERENCES time_slots(id) ON DELETE RESTRICT,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL
 );
 
 -- Insert default time slots

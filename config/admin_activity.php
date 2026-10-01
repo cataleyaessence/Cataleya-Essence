@@ -16,3 +16,13 @@ function logAdminActivity(PDO $pdo, int $adminId, string $action, string $entity
         error_log('Admin activity logging error: ' . $exception->getMessage());
     }
 }
+
+/**
+ * The activity table's `admin_id` column is a legacy name for an ID in the
+ * shared users table. Use this wrapper for customer-initiated actions so the
+ * activity log can identify the customer who made the change.
+ */
+function logCustomerActivity(PDO $pdo, int $userId, string $action, string $entityType, ?int $entityId = null, ?string $details = null): void
+{
+    logAdminActivity($pdo, $userId, $action, $entityType, $entityId, $details);
+}

@@ -1035,7 +1035,7 @@ body {
 }
 
 .analytics-page .chart-card {
-    min-height: 316px;
+    min-height: 272px;
     padding: 22px 24px 20px;
 }
 
@@ -1062,6 +1062,8 @@ body {
 }
 
 .analytics-page .period-tabs {
+    position: relative;
+    z-index: 2;
     padding: 3px;
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -1069,6 +1071,9 @@ body {
 }
 
 .analytics-page .period-tab {
+    position: relative;
+    z-index: 1;
+    min-height: 32px;
     padding: 6px 11px;
     border: 0;
     border-radius: 8px;
@@ -1082,7 +1087,9 @@ body {
 }
 
 .analytics-page .chart-wrap {
-    min-height: 230px;
+    flex: 0 0 176px;
+    min-height: 176px;
+    height: 176px;
 }
 
 .analytics-page .stats-col {
@@ -1160,6 +1167,14 @@ body {
     font-size: 14px;
 }
 
+.services-heading-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    min-width: 0;
+}
+
 .analytics-page .staff-row {
     gap: 10px;
     padding: 11px 0;
@@ -1197,6 +1212,10 @@ body {
     font-size: 12px;
     line-height: 1.5;
     text-align: center;
+}
+
+.analytics-empty[hidden] {
+    display: none !important;
 }
 
 .services-chart-wrap .analytics-empty {
@@ -1246,8 +1265,20 @@ body {
     }
 
     .analytics-page .chart-header,
-    .analytics-page .overview-header {
+    .analytics-page .overview-header,
+    .analytics-page .services-card .panel-heading {
         flex-direction: column;
+    }
+
+    .analytics-page .services-heading-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .analytics-page .chart-wrap {
+        flex-basis: 166px;
+        min-height: 166px;
+        height: 166px;
     }
 }
 
@@ -1267,5 +1298,10 @@ body {
     .analytics-page .period-tabs {
         max-width: 100%;
         overflow-x: auto;
+    }
+
+    .analytics-page .services-heading-actions {
+        align-items: flex-start;
+        flex-direction: column-reverse;
     }
 }

@@ -200,6 +200,10 @@
     margin: 0;
 }
 
+.booking-actions .booking-actions-form {
+    flex: 0 0 auto;
+}
+
 .booking-action-button {
     display: inline-flex;
     align-items: center;
@@ -237,4 +241,299 @@
 .booking-actions-note {
     color: var(--text-muted);
     font-size: 14px;
+}
+
+/* Booking-status page refinement */
+.booking-status-card,
+.status-summary-grid {
+    max-width: 1060px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.booking-status-card {
+    position: relative;
+    align-items: center;
+    min-height: 118px;
+    overflow: hidden;
+    padding: 24px 26px;
+    border-color: #f0d5e1;
+    background: linear-gradient(120deg, #ffffff 0%, #fff6fa 100%);
+    box-shadow: 0 10px 28px rgba(105, 44, 69, 0.07);
+}
+
+.booking-status-card::after {
+    position: absolute;
+    top: -38px;
+    right: -22px;
+    width: 156px;
+    height: 156px;
+    border-radius: 50%;
+    background: rgba(233, 30, 122, 0.08);
+    content: '';
+    pointer-events: none;
+}
+
+.booking-status-card h2 {
+    color: var(--text-dark);
+    font-size: 1.2rem;
+}
+
+.booking-status-card .page-sub {
+    max-width: 580px;
+    margin: 7px 0 0;
+    line-height: 1.5;
+}
+
+.booking-status-card .status-value {
+    position: relative;
+    z-index: 1;
+    min-width: 72px;
+    padding: 8px 16px;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(130, 49, 85, 0.1);
+    color: #d91b72;
+    font-size: clamp(2rem, 4vw, 2.65rem);
+    line-height: 1;
+    text-align: center;
+}
+
+.status-summary-grid {
+    margin-bottom: 24px;
+}
+
+.status-summary-card {
+    position: relative;
+    min-height: 105px;
+    overflow: hidden;
+    border-color: #f0e2e8;
+    box-shadow: 0 5px 16px rgba(70, 33, 46, 0.04);
+}
+
+.status-summary-card::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: #e91e7a;
+    content: '';
+}
+
+.status-summary-card.rescheduled::before { background: #7c3aed; }
+.status-summary-card.completed::before { background: #2196f3; }
+.status-summary-card.cancelled::before { background: #f44336; }
+
+.status-summary-card .summary-label {
+    margin-top: 6px;
+}
+
+.previous-bookings-card .section-header {
+    align-items: flex-start;
+}
+
+.booking-filter-bar {
+    padding: 12px;
+    border: 1px solid #f1e5ea;
+    border-radius: 14px;
+    background: #fffafd;
+}
+
+.filter-button {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.previous-booking-item {
+    position: relative;
+    overflow: hidden;
+    gap: 12px;
+    padding: 18px;
+    border-left: 4px solid #4caf50;
+    background: linear-gradient(110deg, #ffffff 0%, #fffcfd 100%);
+}
+
+.previous-booking-item[data-status="rescheduled"] { border-left-color: #7c3aed; }
+.previous-booking-item[data-status="completed"] { border-left-color: #2196f3; }
+.previous-booking-item[data-status="cancelled"] { border-left-color: #f44336; }
+
+.booking-title {
+    align-items: center;
+    gap: 12px;
+}
+
+.booking-name {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-dark);
+    font-size: 1rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.booking-meta {
+    gap: 8px;
+}
+
+.booking-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: #f9f4f6;
+    color: #6c5360;
+    font-weight: 600;
+}
+
+.booking-details {
+    gap: 9px 18px;
+    margin-top: 0;
+    padding-top: 13px;
+    border-top: 1px solid #f4e9ed;
+    color: #6c5360;
+}
+
+.booking-details strong {
+    color: #43323a;
+}
+
+.booking-who {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #faf7f8;
+    color: #6d5962;
+    line-height: 1.5;
+}
+
+.booking-reschedule-reason {
+    display: grid;
+    grid-template-columns: minmax(128px, 0.45fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 12px 14px;
+    border: 1px solid #dfd0fb;
+    border-radius: 12px;
+    background: #faf8ff;
+}
+
+.booking-reschedule-reason__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #6840b4;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.booking-reschedule-reason p {
+    margin: 0;
+    color: #4d3b71;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.booking-actions {
+    align-items: center;
+    margin-top: 2px;
+    padding-top: 13px;
+    border-top: 1px solid #f4e9ed;
+}
+
+.booking-action-button {
+    min-height: 40px;
+    margin-top: 0;
+}
+
+.booking-action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.booking-action-note,
+.booking-actions-note {
+    color: #806e76;
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
+.booking-actions .completion-action-note {
+    flex-basis: 100%;
+    order: 2;
+}
+
+@media (max-width: 760px) {
+    .status-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .booking-status-card {
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .booking-details,
+    .booking-reschedule-reason {
+        grid-template-columns: 1fr;
+    }
+
+    .booking-reschedule-reason {
+        gap: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .booking-status-card {
+        gap: 16px;
+        flex-direction: column;
+    }
+
+    .booking-status-card .status-value {
+        align-self: flex-start;
+    }
+
+    .previous-bookings-card {
+        padding: 16px;
+    }
+
+    .booking-filter-bar {
+        gap: 7px;
+        margin-bottom: 18px;
+    }
+
+    .filter-button {
+        flex: 1 1 calc(50% - 7px);
+        padding: 9px 10px;
+    }
+
+    .previous-booking-item {
+        padding: 15px;
+    }
+
+    .booking-title {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .booking-name {
+        white-space: normal;
+    }
+
+    .booking-actions,
+    .booking-actions-form,
+    .booking-action-button {
+        width: 100%;
+    }
+
+    .booking-actions .booking-actions-form,
+    .booking-actions .booking-action-button {
+        width: auto;
+    }
 }

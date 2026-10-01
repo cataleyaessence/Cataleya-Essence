@@ -1,0 +1,4 @@
+# Local credentials and deployment-specific environment values
+/config/paymongo.local.php
+/.env
+

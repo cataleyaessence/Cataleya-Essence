@@ -4,6 +4,11 @@
 
 // ── Use PHP-fetched data or fallback to empty arrays ──
 const serviceDataRaw = window.analyticsData?.serviceData || [];
+const servicePeriods = window.analyticsData?.servicePeriods || {
+    weekly: [],
+    monthly: serviceDataRaw,
+    annual: []
+};
 const monthlyOverview = window.analyticsData?.monthlyOverview || [];
 const inventory = window.analyticsData?.inventory || { inStock: 0, lowStock: 0, critical: 0, total: 0 };
 const periods = window.analyticsData?.periods || {
@@ -13,14 +18,22 @@ const periods = window.analyticsData?.periods || {
 };
 
 // ── Transform service data for chart ──
-const serviceData = serviceDataRaw
-    .filter(s => Number(s.booking_count) > 0)
-    .slice(0, 5)
-    .map(s => ({
-    label: s.name + ' (' + s.percentage + '%)',
-    value: s.booking_count,
-    pct: s.percentage
-}));
+function normalizeServiceData(rawServices) {
+    return (Array.isArray(rawServices) ? rawServices : [])
+        .filter((service) => Number(service.booking_count) > 0)
+        .slice(0, 5)
+        .map((service) => ({
+            label: String(service.name || 'Unnamed service'),
+            value: Number(service.booking_count),
+            pct: Number(service.percentage) || 0
+        }));
+}
+
+const servicePeriodLabels = {
+    weekly: 'this week',
+    monthly: 'this month',
+    annual: 'this year'
+};
 
 // ── Transform booking data for period tabs ──
 const bookingDataMap = {
@@ -135,15 +148,53 @@ const revenueChart = new Chart(ctx, {
 // ── Services Pie Chart ──
 const servicesCanvas = document.getElementById('servicesPieChart');
 const servicesEmpty = document.getElementById('servicesEmpty');
-if (servicesCanvas && serviceData.length > 0) {
-    const pieCtx = servicesCanvas.getContext('2d');
-    const pieColors = ['#e91e7a', '#f06292', '#f8a4b8', '#fcc9d6', '#fce8ef'];
-    new Chart(pieCtx, {
+const servicesPeriodSubtitle = document.getElementById('servicesPeriodSubtitle');
+const serviceTabs = Array.from(document.querySelectorAll('[data-chart="services"]'));
+const pieColors = ['#e91e7a', '#f06292', '#f8a4b8', '#fcc9d6', '#fce8ef'];
+let servicesPieChart = null;
+
+function renderServicesChart(period) {
+    const serviceData = normalizeServiceData(servicePeriods[period]);
+    const periodLabel = servicePeriodLabels[period] || 'the selected period';
+
+    if (servicesPeriodSubtitle) {
+        servicesPeriodSubtitle.textContent = `Top 5 booked services ${periodLabel}`;
+    }
+
+    if (!servicesCanvas) {
+        return;
+    }
+
+    if (serviceData.length === 0) {
+        servicesCanvas.hidden = true;
+        if (servicesEmpty) {
+            servicesEmpty.textContent = `No service bookings recorded ${periodLabel}.`;
+            servicesEmpty.hidden = false;
+        }
+        return;
+    }
+
+    servicesCanvas.hidden = false;
+    if (servicesEmpty) {
+        servicesEmpty.hidden = true;
+    }
+
+    const labels = serviceData.map((service) => `${service.label} (${service.pct}%)`);
+    const values = serviceData.map((service) => service.value);
+
+    if (servicesPieChart) {
+        servicesPieChart.data.labels = labels;
+        servicesPieChart.data.datasets[0].data = values;
+        servicesPieChart.update();
+        return;
+    }
+
+    servicesPieChart = new Chart(servicesCanvas.getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: serviceData.map(s => s.label + ' (' + s.pct + ')'),
+            labels,
             datasets: [{
-                data: serviceData.map(s => s.value),
+                data: values,
                 backgroundColor: pieColors,
                 borderColor: '#fff',
                 borderWidth: 2,
@@ -172,17 +223,32 @@ if (servicesCanvas && serviceData.length > 0) {
                     borderWidth: 1,
                     padding: 10,
                     callbacks: {
-                        label: ctx => ctx.label + ': ' + ctx.parsed + ' bookings'
+                        label: (context) => `${context.label}: ${context.parsed} bookings`
                     }
                 }
             },
             cutout: '60%',
         }
     });
-} else if (servicesCanvas && servicesEmpty) {
-    servicesCanvas.hidden = true;
-    servicesEmpty.hidden = false;
 }
+
+serviceTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+        const period = tab.dataset.period;
+        if (!servicePeriods[period]) {
+            return;
+        }
+
+        serviceTabs.forEach((button) => {
+            const isSelected = button === tab;
+            button.classList.toggle('active', isSelected);
+            button.setAttribute('aria-pressed', String(isSelected));
+        });
+        renderServicesChart(period);
+    });
+});
+
+renderServicesChart('monthly');
 
 // ── Overview Bar Chart ──
 const barCtx = document.getElementById('overviewBarChart').getContext('2d');
@@ -233,30 +299,41 @@ const overviewBarChart = new Chart(barCtx, {
     }
 });
 
-// ── Period Tabs for Revenue Chart ──
-document.querySelectorAll('.chart-card .period-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.chart-card .period-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const period = btn.dataset.period;
-        revenueChart.data.labels = bookingDataMap[period].labels;
-        revenueChart.data.datasets[0].data = bookingDataMap[period].data;
-        revenueChart.data.datasets[1].data = bookingBaselineMap[period];
-        revenueChart.update();
+function updatePeriodTabs(selector, chart, dataMap, onPeriodChange) {
+    const tabs = Array.from(document.querySelectorAll(selector));
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', (event) => {
+            event.preventDefault();
+            const period = tab.dataset.period;
+            const periodData = dataMap[period];
+
+            if (!periodData) {
+                return;
+            }
+
+            tabs.forEach((button) => {
+                const isSelected = button === tab;
+                button.classList.toggle('active', isSelected);
+                button.setAttribute('aria-pressed', String(isSelected));
+            });
+
+            chart.stop();
+            chart.data.labels = [...periodData.labels];
+            chart.data.datasets[0].data = [...periodData.data];
+            onPeriodChange(period);
+            chart.update();
+        });
     });
+}
+
+// Keep the controls independent: changing Booking Trend never changes the
+// Bookings Overview period, and vice versa.
+updatePeriodTabs('[data-chart="trend"]', revenueChart, bookingDataMap, (period) => {
+    revenueChart.data.datasets[1].data = [...bookingBaselineMap[period]];
 });
 
-// ── Period Tabs for Overview Chart ──
-document.querySelectorAll('.overview-card .period-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.overview-card .period-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const period = btn.dataset.period;
-        overviewBarChart.data.labels = bookingsDataMap[period].labels;
-        overviewBarChart.data.datasets[0].data = bookingsDataMap[period].data;
-        overviewBarChart.update();
-    });
-});
+updatePeriodTabs('[data-chart="overview"]', overviewBarChart, bookingsDataMap, () => {});
 
 // ── Button Handlers ──
 const addServiceBtn = document.getElementById('addServiceBtn');

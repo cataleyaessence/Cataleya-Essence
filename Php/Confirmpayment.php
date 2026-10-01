@@ -22,6 +22,10 @@ $full_name = $user['full_name'] ?? '';
 $email = $user['email'] ?? '';
 $phone = $user['phone'] ?? '';
 
+if (empty($_SESSION['payment_csrf'])) {
+    $_SESSION['payment_csrf'] = bin2hex(random_bytes(32));
+}
+
 // Build initials for the profile avatar
 $name_parts = array_filter(explode(' ', trim($full_name)));
 if (count($name_parts) >= 2) {
@@ -44,7 +48,7 @@ if (count($name_parts) >= 2) {
     <link rel="stylesheet" href="../css/user-footer.css" />
     <link rel="icon" href="../img/Rectangle 38 (1).png" />
 </head>
-<body>
+<body data-payment-csrf="<?php echo htmlspecialchars($_SESSION['payment_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
 
     <header class="navbar">
         <div class="navbar__logo">
@@ -175,10 +179,10 @@ if (count($name_parts) >= 2) {
                     </div>
                 </div>
 
-                <!-- QR Code + Instructions -->
+                <!-- Placeholder QR Code + Instructions -->
                 <div class="qr-container">
                     <div class="qr-code">
-                        <img src="../img/qr.png" alt="GCash QR Code" id="qrImage" />
+                        <img src="../img/qr.png" alt="GCash QR Code placeholder" id="qrImage" />
                     </div>
                     <div class="qr-instructions">
                         <span class="qr-step"><i class="fas fa-qrcode"></i> Tap QR and scan to pay</span>
@@ -213,7 +217,7 @@ if (count($name_parts) >= 2) {
                     <button class="btn-back" id="backBtn">
                         <i class="fas fa-arrow-left" style="margin-right:8px;"></i> Back
                     </button>
-                    <button class="btn-verify" id="verifyBtn">
+                    <button class="btn-verify" id="verifyBtn" type="button">
                         <i class="fas fa-check-circle" style="margin-right:8px;"></i> Verify Payment
                     </button>
                 </div>
@@ -296,10 +300,10 @@ if (count($name_parts) >= 2) {
 
                 <!-- Actions -->
                 <div class="payment-actions">
-                    <button class="btn-back" id="reviewBackBtn">
+                    <button class="btn-back" id="reviewBackBtn" type="button">
                         <i class="fas fa-arrow-left" style="margin-right:8px;"></i> Back
                     </button>
-                    <button class="btn-verify" id="confirmBookingBtn">
+                    <button class="btn-verify" id="confirmBookingBtn" type="button">
                         <i class="fas fa-check-circle" style="margin-right:8px;"></i> Confirm Booking
                     </button>
                 </div>
@@ -308,6 +312,32 @@ if (count($name_parts) >= 2) {
         </div>
 
     </main>
+
+    <!--
+        PayMongo UI is intentionally retained but temporarily inactive while the
+        static QR placeholder above is in use. Its JavaScript, API endpoints,
+        configuration, and database changes remain untouched.
+
+    <div class="qr-payment-modal" id="qrPaymentModal" hidden>
+        <div class="qr-payment-modal__backdrop" data-qr-close></div>
+        <section class="qr-payment-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="qrPaymentTitle" aria-describedby="qrPaymentDescription">
+            <button class="qr-payment-modal__close" id="closeQrPaymentModal" type="button" aria-label="Close QR payment popup">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+            </button>
+            <span class="qr-payment-modal__icon"><i class="fas fa-qrcode" aria-hidden="true"></i></span>
+            <h2 id="qrPaymentTitle">Scan to pay your downpayment</h2>
+            <p id="qrPaymentDescription">Use GCash, Maya, or a supported QR Ph banking app. This QR is one-time use and contains the exact amount.</p>
+            <div class="qr-payment-modal__image-wrap">
+                <img id="qrPaymentImage" src="" alt="PayMongo QR Ph code for the required downpayment" />
+            </div>
+            <p class="qr-payment-modal__amount">Amount due: <strong id="qrPaymentAmount">₱0.00</strong></p>
+            <p class="qr-payment-modal__reference">Reference: <span id="qrPaymentReference">—</span></p>
+            <p class="qr-payment-modal__status" id="qrPaymentStatus" role="status" aria-live="polite">Waiting for PayMongo to confirm your payment…</p>
+            <button class="qr-payment-modal__cancel" id="cancelQrPayment" type="button">Close QR popup</button>
+            <p class="qr-payment-modal__note">There is no manual “paid” button. The confirmation screen opens only after PayMongo verifies the payment.</p>
+        </section>
+    </div>
+    -->
 
     <!-- ========== FOOTER ========== -->
     <footer class="footer">

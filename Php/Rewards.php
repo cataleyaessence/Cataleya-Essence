@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/rewards.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: signin.php');
@@ -39,51 +40,61 @@ if (!$rewards) {
     $rewards = ['points' => 0, 'tier' => 'bronze', 'visits' => 0];
 }
 
-// Calculate progress to next tier
-$current_points = $rewards['points'];
-$current_tier = $rewards['tier'];
-$next_tier_threshold = 0;
-$progress_percent = 0;
-$next_tier_name = '';
+// Calculate the displayed tier from the user's current points. This keeps the
+// dashboard correct even if a legacy rewards row has an outdated tier value.
+$current_points = max(0, (int) $rewards['points']);
+$current_tier = rewardTierForPoints($current_points);
+$rewards['points'] = $current_points;
+$rewards['tier'] = $current_tier;
 
 $tier_thresholds = [
-    'bronze' => 50,
+    'bronze' => 0,
     'silver' => 100,
     'gold' => 150,
-    'platinum' => 200
+    'platinum' => 200,
 ];
+$tier_discounts = [
+    'bronze' => 5,
+    'silver' => 10,
+    'gold' => 15,
+    'platinum' => 20,
+];
+$tier_order = array_keys($tier_thresholds);
+$current_tier_index = array_search($current_tier, $tier_order, true);
+$current_tier_index = $current_tier_index === false ? 0 : $current_tier_index;
+$next_tier_key = $tier_order[$current_tier_index + 1] ?? null;
+$next_tier_name = $next_tier_key ? ucfirst($next_tier_key) : 'Max';
+$next_tier_threshold = $next_tier_key ? $tier_thresholds[$next_tier_key] : 0;
 
-if ($current_tier === 'bronze') {
-    $next_tier_threshold = $tier_thresholds['silver'];
-    $next_tier_name = 'Silver';
-    $progress_percent = min(($current_points / $next_tier_threshold) * 100, 100);
-} elseif ($current_tier === 'silver') {
-    $next_tier_threshold = $tier_thresholds['gold'];
-    $next_tier_name = 'Gold';
-    $progress_percent = min((($current_points - $tier_thresholds['silver']) / ($next_tier_threshold - $tier_thresholds['silver'])) * 100, 100);
-} elseif ($current_tier === 'gold') {
-    $next_tier_threshold = $tier_thresholds['platinum'];
-    $next_tier_name = 'Platinum';
-    $progress_percent = min((($current_points - $tier_thresholds['gold']) / ($next_tier_threshold - $tier_thresholds['gold'])) * 100, 100);
-} elseif ($current_tier === 'platinum') {
+if ($next_tier_key) {
+    $current_tier_threshold = $tier_thresholds[$current_tier];
+    $tier_range = max(1, $next_tier_threshold - $current_tier_threshold);
+    $progress_percent = min(100, max(0, (($current_points - $current_tier_threshold) / $tier_range) * 100));
+    $points_to_next = max(0, $next_tier_threshold - $current_points);
+} else {
     $progress_percent = 100;
-    $next_tier_name = 'Max';
+    $points_to_next = 0;
 }
 
-$points_to_next = $current_tier === 'platinum' ? 0 : $next_tier_threshold - $current_points;
+$discount_rate = $tier_discounts[$current_tier];
 
-$discount_rate = 5;
-switch ($current_tier) {
-    case 'silver':
-        $discount_rate = 10;
-        break;
-    case 'gold':
-        $discount_rate = 15;
-        break;
-    case 'platinum':
-        $discount_rate = 20;
-        break;
+function rewardTierCardState(string $tier, int $points, array $thresholds, string $currentTier): array
+{
+    $isCurrent = $tier === $currentTier;
+    $isUnlocked = $points >= $thresholds[$tier];
+
+    return [
+        'classes' => trim(($isCurrent ? ' tier-card--current' : '') . ($isUnlocked ? ' tier-card--unlocked' : ' tier-card--locked')),
+        'label' => $isCurrent
+            ? 'Your current tier'
+            : ($isUnlocked ? 'Unlocked' : 'Unlock at ' . number_format($thresholds[$tier]) . ' pts'),
+    ];
 }
+
+$bronzeTierCard = rewardTierCardState('bronze', $current_points, $tier_thresholds, $current_tier);
+$silverTierCard = rewardTierCardState('silver', $current_points, $tier_thresholds, $current_tier);
+$goldTierCard = rewardTierCardState('gold', $current_points, $tier_thresholds, $current_tier);
+$platinumTierCard = rewardTierCardState('platinum', $current_points, $tier_thresholds, $current_tier);
 
 // Show every booking's reward outcome. Only completed services can earn points.
 $stmt = $pdo->prepare("
@@ -201,8 +212,9 @@ $remainder = array_slice($hall_of_fame, 3);
     <!-- 4 TIER CARDS -->
     <div class="rewards__tiers">
 
-      <div class="tier-card tier-card--bronze">
+      <div class="tier-card tier-card--bronze <?php echo $bronzeTierCard['classes']; ?>">
         <div class="tier-card__name">Bronze</div>
+        <span class="tier-card__status"><?php echo htmlspecialchars($bronzeTierCard['label'], ENT_QUOTES, 'UTF-8'); ?></span>
         <ul class="tier-card__benefits">
           <li>5% discount on all services</li>
           <li>Birthday bonus: 50 extra points</li>
@@ -211,8 +223,9 @@ $remainder = array_slice($hall_of_fame, 3);
         </ul>
       </div>
 
-      <div class="tier-card tier-card--silver">
+      <div class="tier-card tier-card--silver <?php echo $silverTierCard['classes']; ?>">
         <div class="tier-card__name">Silver</div>
+        <span class="tier-card__status"><?php echo htmlspecialchars($silverTierCard['label'], ENT_QUOTES, 'UTF-8'); ?></span>
         <ul class="tier-card__benefits">
           <li>10% discount on all services</li>
           <li>Priority booking access</li>
@@ -222,8 +235,9 @@ $remainder = array_slice($hall_of_fame, 3);
         </ul>
       </div>
 
-      <div class="tier-card tier-card--gold">
+      <div class="tier-card tier-card--gold <?php echo $goldTierCard['classes']; ?>">
         <div class="tier-card__name">Gold</div>
+        <span class="tier-card__status"><?php echo htmlspecialchars($goldTierCard['label'], ENT_QUOTES, 'UTF-8'); ?></span>
         <ul class="tier-card__benefits">
           <li>15% discount on all services</li>
           <li>Free monthly 30-min facial</li>
@@ -234,8 +248,9 @@ $remainder = array_slice($hall_of_fame, 3);
         </ul>
       </div>
 
-      <div class="tier-card tier-card--platinum">
+      <div class="tier-card tier-card--platinum <?php echo $platinumTierCard['classes']; ?>">
         <div class="tier-card__name">Platinum</div>
+        <span class="tier-card__status"><?php echo htmlspecialchars($platinumTierCard['label'], ENT_QUOTES, 'UTF-8'); ?></span>
         <ul class="tier-card__benefits">
           <li>20% discount on all services</li>
           <li>Monthly complimentary  treatment</li>
@@ -286,7 +301,9 @@ $remainder = array_slice($hall_of_fame, 3);
           <div class="status-card__progress-track">
             <div class="status-card__progress-fill" style="width: <?php echo $progress_percent; ?>%;"></div>
           </div>
-          <div class="status-card__progress-label"><?php echo round($progress_percent); ?>% to <?php echo $next_tier_name; ?></div>
+          <div class="status-card__progress-label">
+            <?php echo $next_tier_key ? round($progress_percent) . '% to ' . $next_tier_name : 'Max tier reached'; ?>
+          </div>
         </div>
       </div>
 

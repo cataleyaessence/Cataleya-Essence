@@ -322,7 +322,25 @@ button { font-family: inherit; cursor: pointer; }
 }
 .slot-btn:hover:not(:disabled) { border-color: var(--pink-500); }
 .slot-btn.selected { background: var(--pink-600); border-color: var(--pink-600); color: var(--white); }
-.slot-btn.booked { background: var(--red-bg); border-color: var(--red-bg); color: var(--red); opacity: 0.75; cursor: not-allowed; }
+.slot-btn.booked {
+    display: flex;
+    min-height: 48px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--red-bg);
+    border-color: var(--red);
+    color: var(--red);
+    opacity: 1;
+    cursor: not-allowed;
+}
+.slot-btn.booked::after {
+    content: 'BOOKED';
+    margin-top: 2px;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .08em;
+}
 .slot-btn:disabled { cursor: not-allowed; }
 
 .timeslots-grid.empty-slots { display: block; }

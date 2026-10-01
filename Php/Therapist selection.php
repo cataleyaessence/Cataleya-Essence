@@ -49,14 +49,11 @@ $stmt = $pdo->prepare("
         full_name,
         title,
         image_url,
-        experience_years,
-        rating,
-        total_reviews,
         category,
         is_available
     FROM staff 
     WHERE category = ? AND is_available = 1 AND is_active = 1
-    ORDER BY rating DESC, total_reviews DESC
+    ORDER BY full_name ASC
 ");
 $stmt->execute([$category]);
 $therapists = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -130,11 +127,11 @@ $categoryType = ($category === 'Beauty Services') ? 'beauty' : 'spa';
 
         <div class="therapist-hero">
             <h1>Choose Your Therapist</h1>
-            <p>Select a specialist for your treatment. All our therapists are licensed professionals with years of experience.</p>
+            <p>Select a licensed specialist for your treatment.</p>
             <p style="color: #666; font-size: 14px; margin-top: 10px;">Category: <strong><?php echo htmlspecialchars($category); ?></strong> (<?php echo count($therapists); ?> therapists available)</p>
         </div>
 
-        <div class="therapist-grid" id="therapistGrid">
+        <div class="therapist-grid" id="therapistGrid" data-category="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>">
             <?php if (empty($therapists)): ?>
                 <p>No therapists available for this category.</p>
             <?php else: ?>
@@ -145,11 +142,9 @@ $categoryType = ($category === 'Beauty Services') ? 'beauty' : 'spa';
                         </div>
                         <h3 class="therapist-name"><?php echo htmlspecialchars($therapist['full_name']); ?></h3>
                         <p class="therapist-title"><?php echo htmlspecialchars($therapist['title']); ?></p>
-                        <div class="therapist-rating">
-                            <i class="fas fa-star"></i> <?php echo number_format($therapist['rating'], 1); ?> <span>· <?php echo $therapist['experience_years']; ?> years</span>
-                        </div>
                         <p class="therapist-specialties">Specialists</p>
-                        <button class="select-btn" data-id="<?php echo $therapist['id']; ?>">Select</button>
+                        <p class="therapist-availability" aria-live="polite">Checking schedule...</p>
+                        <button class="select-btn" type="button" data-id="<?php echo $therapist['id']; ?>" disabled>Checking...</button>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>

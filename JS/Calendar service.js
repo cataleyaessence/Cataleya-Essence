@@ -168,7 +168,6 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(viewYear, viewMonth, day);
             const status = getDateStatus(dateObj);
-
             const btn = document.createElement('button');
             btn.className = `date-cell ${status}`;
             btn.textContent = day;
@@ -178,8 +177,8 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', async function() {
                 selectedDate = dateObj;
                 selectedTime = null;
-                renderCalendar();
-                await renderTimeSlots();
+                selectedTimeData = null;
+                await renderCalendar();
             });
 
             grid.appendChild(btn);
@@ -211,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = await fetchTimeSlots(selectedDate);
         
         let availCount = 0, bookedCount = 0;
+        let selectedTimeIsAvailable = false;
 
         if (result && result.data) {
             result.data.forEach(slot => {
@@ -224,7 +224,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.className = `slot-btn ${slot.status === 'available' ? '' : 'booked'}`;
                 btn.textContent = slot.time;
                 btn.disabled = (slot.status !== 'available');
-                if (selectedTime === slot.id) btn.classList.add('selected');
+                if (slot.user_booked) {
+                    btn.title = 'You already have a booking at this time';
+                    btn.setAttribute('aria-label', `${slot.time}: your booked time`);
+                } else if (slot.time_has_passed || slot.status === 'past') {
+                    btn.title = 'This appointment time has already passed';
+                    btn.setAttribute('aria-label', `${slot.time}: time has passed`);
+                }
+                if (selectedTime === slot.id && slot.status === 'available') {
+                    selectedTimeIsAvailable = true;
+                    btn.classList.add('selected');
+                }
 
                 btn.addEventListener('click', function() {
                     selectedTime = slot.id;
@@ -240,8 +250,14 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Fallback if API fails
             timeslotsDateEl.textContent = 'Unable to load time slots';
+            selectedTime = null;
+            selectedTimeData = null;
         }
 
+        if (!selectedTimeIsAvailable) {
+            selectedTime = null;
+            selectedTimeData = null;
+        }
         if (bookDateBtn) bookDateBtn.disabled = !selectedTime;
     }
 
@@ -298,6 +314,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ─── INIT ────────────────────────────────────────────────────
+    let availabilityRefreshInProgress = false;
+    async function refreshCalendarAvailability() {
+        if (document.hidden || availabilityRefreshInProgress) {
+            return;
+        }
+
+        availabilityRefreshInProgress = true;
+        try {
+            await renderCalendar();
+        } finally {
+            availabilityRefreshInProgress = false;
+        }
+    }
+
+    window.setInterval(refreshCalendarAvailability, 10000);
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            refreshCalendarAvailability();
+        }
+    });
+
     renderCalendar();
 
 });

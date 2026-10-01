@@ -168,24 +168,40 @@ for ($i = 4; $i >= 0; $i--) {
 // ── BOOKING TREND (last 90 days) ──
 // ── TOP STAFF BY USER BOOKINGS ──
 // ── BOOKINGS BY SERVICE ──
-$stmt = $pdo->prepare(" 
-    SELECT s.name, COUNT(b.id) as booking_count
-    FROM services s
-    LEFT JOIN bookings b ON s.id = b.service_id AND b.status IN ('confirmed', 'completed')
-    AND DATE_FORMAT(b.booking_date, '%Y-%m') = ?
-    GROUP BY s.id
-    HAVING booking_count > 0
-    ORDER BY booking_count DESC, s.name ASC
-    LIMIT 5
-");
-$stmt->execute([$currentMonth]);
-$serviceData = $stmt->fetchAll();
+function fetchTopServiceBookings(PDO $pdo, string $startDate, string $endDate): array
+{
+    $statement = $pdo->prepare("
+        SELECT s.name, COUNT(b.id) AS booking_count
+        FROM bookings b
+        INNER JOIN services s ON s.id = b.service_id
+        WHERE b.status IN ('confirmed', 'rescheduled', 'completed')
+          AND b.booking_date BETWEEN ? AND ?
+        GROUP BY s.id, s.name
+        ORDER BY booking_count DESC, s.name ASC
+        LIMIT 5
+    ");
+    $statement->execute([$startDate, $endDate]);
+    $services = $statement->fetchAll(PDO::FETCH_ASSOC);
+    $totalBookings = array_sum(array_map(static fn (array $service): int => (int) $service['booking_count'], $services));
 
-// Calculate percentages for services
-$totalServiceBookings = array_sum(array_column($serviceData, 'booking_count'));
-foreach ($serviceData as &$service) {
-    $service['percentage'] = $totalServiceBookings > 0 ? round(($service['booking_count'] / $totalServiceBookings) * 100, 1) : 0;
+    foreach ($services as &$service) {
+        $service['booking_count'] = (int) $service['booking_count'];
+        $service['percentage'] = $totalBookings > 0
+            ? round(((int) $service['booking_count'] / $totalBookings) * 100, 1)
+            : 0;
+    }
+    unset($service);
+
+    return $services;
 }
+
+$servicePeriodData = [
+    'weekly' => fetchTopServiceBookings($pdo, date('Y-m-d', strtotime('-6 days')), $todayDate),
+    'monthly' => fetchTopServiceBookings($pdo, date('Y-m-01'), date('Y-m-t')),
+    'annual' => fetchTopServiceBookings($pdo, date('Y-01-01'), date('Y-12-31')),
+];
+// Keep the current-month value available for integrations that still use it.
+$serviceData = $servicePeriodData['monthly'];
 
 // ── MONTHLY OVERVIEW (last 12 months) ──
 $monthlyOverview = [];
@@ -278,7 +294,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <a href="Admin-BookingStatus.php" class="nav-link"><i class="fas fa-check-circle"></i> Booking Status</a>
                 <a href="Admin-Service.php" class="nav-link"><i class="fas fa-hand-sparkles"></i> Services</a>
                 <a href="Admin-Staff.php" class="nav-link"><i class="fas fa-user-tie"></i> Staff</a>
+                <a href="Admin-UserRecords.php" class="nav-link"><i class="fas fa-users"></i> User Records</a>
                 <a href="Admin-Analytics.php" class="nav-link active"><i class="fas fa-chart-pie"></i> Analytics Reports</a>
+                <a href="Admin-CustomerRanking.php" class="nav-link"><i class="fas fa-trophy"></i> Customer Ranking</a>
                 <a href="Admin-ActivityLog.php" class="nav-link"><i class="fas fa-clipboard-list"></i> Activity Log</a>
                 <a href="Admin-Settings.php" class="nav-link"><i class="fas fa-cog"></i> Settings</a>
             </nav>
@@ -360,10 +378,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <h2 class="chart-title">Booking Trend</h2>
                             <p class="card-subtitle">Appointments recorded over time</p>
                         </div>
-                        <div class="period-tabs">
-                            <button class="period-tab active" data-period="weekly">Weekly</button>
-                            <button class="period-tab" data-period="monthly">Monthly</button>
-                            <button class="period-tab" data-period="annual">Annual</button>
+                        <div class="period-tabs" role="group" aria-label="Booking Trend period">
+                            <button type="button" class="period-tab active" data-chart="trend" data-period="weekly" aria-pressed="true">Weekly</button>
+                            <button type="button" class="period-tab" data-chart="trend" data-period="monthly" aria-pressed="false">Monthly</button>
+                            <button type="button" class="period-tab" data-chart="trend" data-period="annual" aria-pressed="false">Annual</button>
                         </div>
                     </div>
                     <div class="chart-wrap">
@@ -401,9 +419,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <div class="panel-heading">
                         <div>
                             <h3 class="services-card-title">Bookings by Service</h3>
-                            <p class="card-subtitle">Top 5 booked services this month</p>
+                            <p class="card-subtitle" id="servicesPeriodSubtitle">Top 5 booked services this month</p>
                         </div>
-                        <i class="fas fa-spa panel-heading-icon"></i>
+                        <div class="services-heading-actions">
+                            <div class="period-tabs" role="group" aria-label="Bookings by Service period">
+                                <button type="button" class="period-tab" data-chart="services" data-period="weekly" aria-pressed="false">Weekly</button>
+                                <button type="button" class="period-tab active" data-chart="services" data-period="monthly" aria-pressed="true">Monthly</button>
+                                <button type="button" class="period-tab" data-chart="services" data-period="annual" aria-pressed="false">Annually</button>
+                            </div>
+                            <i class="fas fa-spa panel-heading-icon"></i>
+                        </div>
                     </div>
                     <div class="services-chart-wrap">
                         <canvas id="servicesPieChart"></canvas>
@@ -420,10 +445,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <h3 class="overview-card-title">Bookings Overview</h3>
                         <p class="card-subtitle">Compare appointment volume by period</p>
                     </div>
-                    <div class="period-tabs">
-                        <button class="period-tab active" data-period="weekly">Weekly</button>
-                        <button class="period-tab" data-period="monthly">Monthly</button>
-                        <button class="period-tab" data-period="annual">Annually</button>
+                    <div class="period-tabs" role="group" aria-label="Bookings Overview period">
+                        <button type="button" class="period-tab active" data-chart="overview" data-period="weekly" aria-pressed="true">Weekly</button>
+                        <button type="button" class="period-tab" data-chart="overview" data-period="monthly" aria-pressed="false">Monthly</button>
+                        <button type="button" class="period-tab" data-chart="overview" data-period="annual" aria-pressed="false">Annually</button>
                     </div>
                 </div>
                 <div class="overview-chart-wrap">
@@ -436,6 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <script>
         window.analyticsData = {
             serviceData: <?php echo json_encode($serviceData); ?>,
+            servicePeriods: <?php echo json_encode($servicePeriodData); ?>,
             monthlyOverview: <?php echo json_encode($monthlyOverview); ?>,
             inventory: <?php echo json_encode([
                 'inStock' => $inStock,
@@ -460,5 +486,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         };
     </script>
     <script src="../JS/Admin-Booking Analytics.js" defer></script>
+    <script src="../JS/admin-sidebar.js" defer></script>
 </body>
 </html>

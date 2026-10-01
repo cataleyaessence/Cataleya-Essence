@@ -264,28 +264,62 @@ if (count($name_parts) >= 2) {
             <div class="modal-card reschedule-modal-card" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
                 <button type="button" class="modal-close" id="rescheduleModalClose" aria-label="Close reschedule form">&times;</button>
                 <div class="modal-header">
+                    <p class="modal-kicker"><i class="fas fa-calendar-pen"></i> Appointment update</p>
                     <h2 id="rescheduleModalTitle">Reschedule Booking</h2>
+                    <p class="reschedule-modal-subtitle">Choose another available schedule, then let us know what changed.</p>
                 </div>
                 <form id="rescheduleForm" class="reschedule-form">
-                    <input type="hidden" id="rescheduleBookingId" name="booking_id" />
-                    <div class="reschedule-field">
+                    <div class="reschedule-form-body">
+                        <input type="hidden" id="rescheduleBookingId" name="booking_id" />
+                        <div class="reschedule-field">
                         <label for="rescheduleService">Service</label>
                         <select id="rescheduleService" name="service_id" required>
                             <option value="">Choose a service</option>
                         </select>
                     </div>
-                    <div class="reschedule-field">
-                        <label for="rescheduleDate">New date</label>
-                        <input type="date" id="rescheduleDate" name="booking_date" required />
+                    <div class="reschedule-schedule-grid">
+                        <div class="reschedule-field">
+                            <label for="rescheduleDate">New date</label>
+                            <input type="date" id="rescheduleDate" name="booking_date" required />
+                        </div>
+                        <div class="reschedule-field">
+                            <label for="rescheduleTime">Available time</label>
+                            <select id="rescheduleTime" name="booking_time" required disabled>
+                                <option value="">Choose a date first</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="reschedule-field">
-                        <label for="rescheduleTime">Available time</label>
-                        <select id="rescheduleTime" name="booking_time" required disabled>
-                            <option value="">Choose a date first</option>
-                        </select>
+                    <section class="reschedule-reason-panel" aria-labelledby="rescheduleReasonTitle">
+                        <div class="reschedule-reason-panel-heading">
+                            <span class="reschedule-reason-icon" aria-hidden="true"><i class="fas fa-pen"></i></span>
+                            <div>
+                                <div class="reschedule-reason-title-row">
+                                    <h3 id="rescheduleReasonTitle">Reschedule details</h3>
+                                    <span class="reschedule-required">Required</span>
+                                </div>
+                                <p>Choose a reason for your request, then add details if you would like us to know more.</p>
+                            </div>
+                        </div>
+                        <div class="reschedule-field">
+                            <label for="rescheduleReason">Reason for rescheduling</label>
+                            <select id="rescheduleReason" name="reschedule_reason" required>
+                                <option value="">Select a reason</option>
+                                <option value="schedule_conflict">Schedule conflict</option>
+                                <option value="work_school">Work or school commitment</option>
+                                <option value="personal_family">Personal or family matter</option>
+                                <option value="not_feeling_well">Not feeling well</option>
+                                <option value="transportation">Transportation issue</option>
+                            </select>
+                        </div>
+                        <div class="reschedule-field">
+                            <label for="rescheduleReasonDetails">Additional details <span class="reschedule-optional">(Optional)</span></label>
+                            <textarea id="rescheduleReasonDetails" name="reason_details" rows="3" maxlength="500" placeholder="Type any additional details here..."></textarea>
+                            <span class="reschedule-character-note">Up to 500 characters</span>
+                        </div>
+                    </section>
+                        <p class="reschedule-policy-note"><i class="fas fa-circle-info"></i> You may switch only to a service with the same original price. Your completed downpayment remains applied.</p>
+                        <p class="reschedule-message" id="rescheduleMessage" role="status" aria-live="polite"></p>
                     </div>
-                    <p class="reschedule-policy-note"><i class="fas fa-circle-info"></i> You may switch only to a service with the same original price. Your completed downpayment remains applied.</p>
-                    <p class="reschedule-message" id="rescheduleMessage" role="status" aria-live="polite"></p>
                     <div class="modal-footer reschedule-footer">
                         <button type="button" class="btn-secondary-modal" id="cancelReschedule">Cancel</button>
                         <button type="submit" class="btn-confirm-reschedule" id="confirmReschedule">Confirm Reschedule</button>

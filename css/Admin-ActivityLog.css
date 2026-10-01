@@ -387,6 +387,11 @@ td {
     background: #eaf3ff;
 }
 
+.action-booking-rescheduled {
+    color: #6652a8;
+    background: #f1edff;
+}
+
 .action-staff-fired,
 .action-service-removed {
     color: #b74848;

@@ -435,6 +435,50 @@ img {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
+.tier-card--current {
+    position: relative;
+    border-width: 2px;
+    border-top-width: 5px;
+    box-shadow: 0 9px 24px rgba(46, 25, 38, 0.12);
+    transform: translateY(-4px);
+}
+.tier-card--current::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    right: 13px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 4px rgba(233, 30, 122, 0.1);
+}
+.tier-card--locked {
+    opacity: 0.72;
+}
+.tier-card__status {
+    display: inline-flex;
+    min-height: 22px;
+    align-items: center;
+    justify-content: center;
+    margin: -3px 0 10px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #fff2f7;
+    color: var(--pink);
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+.tier-card--current .tier-card__status {
+    background: var(--pink);
+    color: #fff;
+}
+.tier-card--bronze.tier-card--current::before { background: #cd7f4b; }
+.tier-card--silver.tier-card--current::before { background: #8f9bb3; }
+.tier-card--gold.tier-card--current::before { background: #c9a84c; }
+.tier-card--platinum.tier-card--current::before { background: #b084cc; }
 .tier-card__name {
     font-family: var(--font-display);
     font-size: 1.4rem;
@@ -505,12 +549,15 @@ img {
 .rewards__dashboard {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    align-items: start;
     gap: 32px;
     margin-bottom: 48px;
 }
 
 /* ---------- LEFT – Member Status Card ---------- */
 .status-card {
+    align-self: start;
+    height: fit-content;
     background: #ffffff;
     border-radius: 18px;
     padding: 32px 36px;

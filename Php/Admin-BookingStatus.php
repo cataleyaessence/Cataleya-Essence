@@ -8,6 +8,19 @@ if (empty($_SESSION['admin_logged_in']) || empty($_SESSION['admin_id'])) {
     exit;
 }
 
+function bookingTimeZone(): DateTimeZone {
+    static $timeZone = null;
+    if (!$timeZone instanceof DateTimeZone) {
+        $timeZone = new DateTimeZone('Asia/Manila');
+    }
+
+    return $timeZone;
+}
+
+function bookingNow(): DateTime {
+    return new DateTime('now', bookingTimeZone());
+}
+
 function parseBookingDateTime(string $bookingDate, string $bookingTime) {
     $dateTimeString = trim($bookingDate . ' ' . $bookingTime);
     if ($dateTimeString === '') {
@@ -24,17 +37,31 @@ function parseBookingDateTime(string $bookingDate, string $bookingTime) {
     ];
 
     foreach ($formats as $format) {
-        $dateTime = DateTime::createFromFormat($format, $dateTimeString);
+        $dateTime = DateTime::createFromFormat($format, $dateTimeString, bookingTimeZone());
         if ($dateTime instanceof DateTime) {
             return $dateTime;
         }
     }
 
     try {
-        return new DateTime($dateTimeString);
+        return new DateTime($dateTimeString, bookingTimeZone());
     } catch (Exception $e) {
         return false;
     }
+}
+
+function bookingCompletionDateTime(string $bookingDate, string $bookingTime, int $durationMinutes) {
+    $scheduledDateTime = parseBookingDateTime($bookingDate, $bookingTime);
+    if (!$scheduledDateTime instanceof DateTime) {
+        return false;
+    }
+
+    $completionDateTime = clone $scheduledDateTime;
+    if ($durationMinutes > 0) {
+        $completionDateTime->modify('+' . $durationMinutes . ' minutes');
+    }
+
+    return $completionDateTime;
 }
 
 // Handle admin status transitions for bookings
@@ -53,12 +80,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['boo
             $pdo->beginTransaction();
 
             if ($_POST['action'] === 'complete_booking') {
-                $checkStmt = $pdo->prepare("SELECT booking_date, booking_time, status FROM bookings WHERE id = ? AND status IN ('confirmed', 'rescheduled') FOR UPDATE");
+                $checkStmt = $pdo->prepare(
+                    "SELECT b.booking_date, b.booking_time, b.status, COALESCE(s.duration_minutes, 0) AS duration_minutes
+                     FROM bookings b
+                     LEFT JOIN services s ON s.id = b.service_id
+                     WHERE b.id = ? AND b.status IN ('confirmed', 'rescheduled')
+                     FOR UPDATE"
+                );
                 $checkStmt->execute([$bookingId]);
                 $booking = $checkStmt->fetch();
                 if ($booking) {
-                    $scheduledDateTime = parseBookingDateTime($booking['booking_date'], $booking['booking_time']);
-                    if ($scheduledDateTime === false || new DateTime() >= $scheduledDateTime) {
+                    $completionDateTime = bookingCompletionDateTime(
+                        (string) $booking['booking_date'],
+                        (string) $booking['booking_time'],
+                        (int) $booking['duration_minutes']
+                    );
+                    if ($completionDateTime === false || bookingNow() >= $completionDateTime) {
                         $stmt = $pdo->prepare("UPDATE bookings SET status = 'completed', updated_at = NOW() WHERE id = ? AND status IN ('confirmed', 'rescheduled')");
                         $stmt->execute([$bookingId]);
                         $wasUpdated = $stmt->rowCount() > 0;
@@ -99,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['boo
 }
 
 $stmt = $pdo->prepare(
-    "SELECT b.id, b.booking_date, b.booking_time, b.status, b.total_amount, b.notes, b.updated_at,
+    "SELECT b.id, b.booking_date, b.booking_time, b.status, b.total_amount, b.notes, b.reschedule_reason, b.updated_at,
             u.full_name AS customer_name, u.email AS customer_email,
             s.name AS service_name, s.duration_minutes,
             st.full_name AS staff_name
@@ -135,6 +172,7 @@ $bookingSnapshot = array_map(static function (array $booking): array {
         'id' => (int) $booking['id'],
         'date' => (string) $booking['booking_date'],
         'time' => (string) $booking['booking_time'],
+        'duration_minutes' => (int) ($booking['duration_minutes'] ?? 0),
         'status' => (string) $booking['status'],
         'updated_at' => (string) $booking['updated_at'],
     ];
@@ -195,7 +233,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['action'] ?? '') === 'snapsh
                 <a href="Admin-BookingStatus.php" class="nav-link active"><i class="fas fa-check-circle"></i> Booking Status</a>
                 <a href="Admin-Service.php" class="nav-link"><i class="fas fa-hand-sparkles"></i> Services</a>
                 <a href="Admin-Staff.php" class="nav-link"><i class="fas fa-user-tie"></i> Staff</a>
+                <a href="Admin-UserRecords.php" class="nav-link"><i class="fas fa-users"></i> User Records</a>
                 <a href="Admin-Analytics.php" class="nav-link"><i class="fas fa-chart-pie"></i> Analytics Reports</a>
+                <a href="Admin-CustomerRanking.php" class="nav-link"><i class="fas fa-trophy"></i> Customer Ranking</a>
                 <a href="Admin-ActivityLog.php" class="nav-link"><i class="fas fa-clipboard-list"></i> Activity Log</a>
                 <a href="Admin-Settings.php" class="nav-link"><i class="fas fa-cog"></i> Settings</a>
             </nav>
@@ -280,8 +320,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['action'] ?? '') === 'snapsh
                                         break;
                                 }
                                 $statusLabel = ucfirst($booking['status']);
+                                $completionDateTime = bookingCompletionDateTime(
+                                    (string) $booking['booking_date'],
+                                    (string) $booking['booking_time'],
+                                    (int) ($booking['duration_minutes'] ?? 0)
+                                );
+                                $canComplete = $completionDateTime === false || bookingNow() >= $completionDateTime;
+                                $completionAt = $completionDateTime instanceof DateTime
+                                    ? $completionDateTime->format(DateTimeInterface::ATOM)
+                                    : '';
                             ?>
-                            <div class="previous-booking-item" data-status="<?php echo $statusClass; ?>">
+                            <div class="previous-booking-item" data-status="<?php echo $statusClass; ?>"<?php echo $completionAt !== '' ? ' data-completion-at="' . htmlspecialchars($completionAt, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
                                 <div class="booking-title">
                                     <span class="booking-name"><?php echo htmlspecialchars($booking['customer_name'] ?: 'Guest'); ?></span>
                                     <span class="booking-status <?php echo $statusClass; ?>"><?php echo $statusLabel; ?></span>
@@ -300,19 +349,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['action'] ?? '') === 'snapsh
                                 <?php if (!empty($booking['notes'])): ?>
                                     <div class="booking-who">Notes: <?php echo htmlspecialchars($booking['notes']); ?></div>
                                 <?php endif; ?>
+                                <?php if (!empty($booking['reschedule_reason'])): ?>
+                                    <div class="booking-reschedule-reason">
+                                        <span class="booking-reschedule-reason__label"><i class="fas fa-calendar-pen" aria-hidden="true"></i> Reschedule reason</span>
+                                        <p><?php echo nl2br(htmlspecialchars($booking['reschedule_reason'])); ?></p>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="booking-actions">
                                     <?php if (in_array($booking['status'], ['confirmed', 'rescheduled'], true)): ?>
-                                        <?php
-                                            $scheduledDateTime = parseBookingDateTime($booking['booking_date'], $booking['booking_time']);
-                                            $canComplete = $scheduledDateTime === false || new DateTime() >= $scheduledDateTime;
-                                        ?>
                                         <form method="post" class="booking-actions-form">
                                             <input type="hidden" name="action" value="complete_booking" />
                                             <input type="hidden" name="booking_id" value="<?php echo (int)$booking['id']; ?>" />
                                             <button type="submit" class="booking-action-button complete" <?php echo $canComplete ? '' : 'disabled'; ?>><?php echo $canComplete ? 'Complete' : 'Complete (Not Yet)'; ?></button>
                                         </form>
                                         <?php if (!$canComplete): ?>
-                                            <div class="booking-action-note">Can complete only at or after scheduled date/time.</div>
+                                            <div class="booking-action-note completion-action-note">Can complete once the service duration has ended.</div>
                                         <?php endif; ?>
                                         <form method="post" class="booking-actions-form">
                                             <input type="hidden" name="action" value="cancel_booking" />
@@ -332,5 +383,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['action'] ?? '') === 'snapsh
         </main>
     </div>
     <script src="../JS/Admin-BookingStatus.js"></script>
+    <script src="../JS/admin-sidebar.js" defer></script>
 </body>
 </html>

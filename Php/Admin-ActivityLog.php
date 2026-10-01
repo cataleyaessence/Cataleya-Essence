@@ -15,6 +15,7 @@ $actionLabels = [
     'service_updated' => 'Service updated',
     'service_removed' => 'Service removed',
     'booking_created' => 'Booking created',
+    'booking_rescheduled' => 'Booking rescheduled',
     'booking_status_updated' => 'Booking updated',
     'profile_updated' => 'Profile updated',
     'password_updated' => 'Password updated',
@@ -33,7 +34,7 @@ if ($selectedAction !== '') {
 
 $activityStmt = $pdo->prepare(
     'SELECT activity.id, activity.action, activity.entity_type, activity.entity_id, activity.details, activity.created_at,
-            COALESCE(users.full_name, "Unknown administrator") AS admin_name
+            COALESCE(users.full_name, "Unknown user") AS actor_name
      FROM admin_activity_logs AS activity
      LEFT JOIN users ON users.id = activity.admin_id'
     . $where
@@ -80,7 +81,9 @@ $adminInitial = strtoupper(substr(trim($adminName), 0, 1)) ?: 'A';
                 <a href="Admin-BookingStatus.php" class="nav-link"><i class="fas fa-check-circle"></i>Booking Status</a>
                 <a href="Admin-Service.php" class="nav-link"><i class="fas fa-hand-sparkles"></i>Services</a>
                 <a href="Admin-Staff.php" class="nav-link"><i class="fas fa-user-tie"></i>Staff</a>
+                <a href="Admin-UserRecords.php" class="nav-link"><i class="fas fa-users"></i>User Records</a>
                 <a href="Admin-Analytics.php" class="nav-link"><i class="fas fa-chart-pie"></i>Analytics Reports</a>
+                <a href="Admin-CustomerRanking.php" class="nav-link"><i class="fas fa-trophy"></i>Customer Ranking</a>
                 <a href="Admin-ActivityLog.php" class="nav-link active"><i class="fas fa-clipboard-list"></i>Activity Log</a>
                 <a href="Admin-Settings.php" class="nav-link"><i class="fas fa-cog"></i>Settings</a>
             </nav>
@@ -92,7 +95,7 @@ $adminInitial = strtoupper(substr(trim($adminName), 0, 1)) ?: 'A';
                 <div>
                     <p class="eyebrow"><i class="fas fa-shield-halved"></i> Administrator audit trail</p>
                     <h1>Activity Log</h1>
-                    <p>Review recent administrator actions across staff and service management.</p>
+                    <p>Review recent customer booking changes and administrator actions.</p>
                 </div>
             </section>
 
@@ -117,18 +120,18 @@ $adminInitial = strtoupper(substr(trim($adminName), 0, 1)) ?: 'A';
                 </div>
 
                 <?php if (!$activities): ?>
-                    <div class="empty-log"><i class="fas fa-clipboard"></i><h3>No activity yet</h3><p>Administrator actions will appear here once they are performed.</p></div>
+                    <div class="empty-log"><i class="fas fa-clipboard"></i><h3>No activity yet</h3><p>Customer and administrator actions will appear here once they are performed.</p></div>
                 <?php else: ?>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Action</th><th>Details</th><th>Administrator</th><th>Date &amp; Time</th></tr></thead>
+                            <thead><tr><th>Action</th><th>Details</th><th>Actor</th><th>Date &amp; Time</th></tr></thead>
                             <tbody>
                                 <?php foreach ($activities as $activity): ?>
                                     <?php $action = (string) $activity['action']; ?>
                                     <tr>
                                         <td><span class="action-badge action-<?= htmlspecialchars(str_replace('_', '-', $action), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($actionLabels[$action] ?? ucwords(str_replace('_', ' ', $action)), ENT_QUOTES, 'UTF-8') ?></span></td>
                                         <td><span class="detail-text"><?= htmlspecialchars((string) ($activity['details'] ?: '—'), ENT_QUOTES, 'UTF-8') ?></span></td>
-                                        <td><?= htmlspecialchars((string) $activity['admin_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td><?= htmlspecialchars((string) $activity['actor_name'], ENT_QUOTES, 'UTF-8') ?></td>
                                         <td class="date-cell"><?= htmlspecialchars(date('M j, Y · g:i A', strtotime((string) $activity['created_at'])), ENT_QUOTES, 'UTF-8') ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -139,5 +142,6 @@ $adminInitial = strtoupper(substr(trim($adminName), 0, 1)) ?: 'A';
             </section>
         </main>
     </div>
+    <script src="../JS/admin-sidebar.js" defer></script>
 </body>
 </html>

@@ -590,6 +590,9 @@ $selected_date_slots = $stmt->fetchAll();
                 const availability = availabilityData.success ? availabilityData.availability : {};
                 const userBookings = bookingsData.success ? bookingsData.bookings : [];
                 renderCalendar(year, month, availability, userBookings);
+                if (selectedDate) {
+                    loadTimeSlots(selectedDate);
+                }
             })
             .catch(error => {
                 console.error('Error fetching calendar data:', error);
@@ -677,18 +680,21 @@ $selected_date_slots = $stmt->fetchAll();
                 const dateObj = new Date(selectedDate);
                 timeslotsDate.textContent = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-                // Fetch availability from API
-                fetch(`../api/get_availability.php?date=${selectedDate}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.slots) {
-                            updateTimeslots(data.slots);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching availability:', error);
-                    });
+                loadTimeSlots(selectedDate);
             });
+        }
+
+        function loadTimeSlots(date) {
+            fetch(`../api/get_availability.php?date=${encodeURIComponent(date)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.slots) {
+                        updateTimeslots(data.slots);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching availability:', error);
+                });
         }
 
         function updateTimeslots(slots) {
@@ -727,18 +733,6 @@ $selected_date_slots = $stmt->fetchAll();
         // Auto-refresh calendar every 30 seconds for real-time updates
         setInterval(() => {
             loadCalendar(currentYear, currentMonth);
-            if (selectedDate) {
-                fetch(`../api/get_availability.php?date=${selectedDate}`)
-                    .then(response => response.json())     
-                    .then(data => {
-                        if (data.success && data.slots) {
-                            updateTimeslots(data.slots);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error refreshing availability:', error);
-                    });
-            }
         }, 30000); // Refresh every 30 seconds
     });
   </script>

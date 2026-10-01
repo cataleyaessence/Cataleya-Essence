@@ -1790,10 +1790,24 @@ img { display: block; }
 }
 
 .availability-preview .slot-btn.booked {
+    display: flex;
+    min-height: 48px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     background: #FCE7EB;
-    border-color: #FCE7EB;
+    border-color: #E23F5B;
+    color: #B72E4A;
+    opacity: 1;
+}
+
+.availability-preview .slot-btn.booked::after {
+    content: 'BOOKED';
+    margin-top: 2px;
     color: #E23F5B;
-    opacity: 0.75;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .08em;
 }
 
 .availability-preview .slot-btn.user-booked {

@@ -204,7 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <a href="Admin-BookingStatus.php" class="nav-link"><i class="fas fa-check-circle"></i> Booking Status</a>
                 <a href="Admin-Service.php" class="nav-link"><i class="fas fa-hand-sparkles"></i> Services</a>
                 <a href="Admin-Staff.php" class="nav-link"><i class="fas fa-user-tie"></i> Staff</a>
+                <a href="Admin-UserRecords.php" class="nav-link"><i class="fas fa-users"></i> User Records</a>
                 <a href="Admin-Analytics.php" class="nav-link"><i class="fas fa-chart-pie"></i> Analytics Reports</a>
+                <a href="Admin-CustomerRanking.php" class="nav-link"><i class="fas fa-trophy"></i> Customer Ranking</a>
                 <a href="Admin-ActivityLog.php" class="nav-link"><i class="fas fa-clipboard-list"></i> Activity Log</a>
                 <a href="Admin-Settings.php" class="nav-link"><i class="fas fa-cog"></i> Settings</a>
             </nav>
@@ -357,5 +359,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
 
     <!-- ═══ TOAST ═══ -->
+    <script src="../JS/admin-sidebar.js" defer></script>
 </body>
 </html>

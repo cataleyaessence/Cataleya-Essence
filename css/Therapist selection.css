@@ -261,6 +261,16 @@ button {
     border-color: var(--pink-600);
     box-shadow: 0 0 0 2px var(--pink-600), var(--shadow-pink);
 }
+.therapist-card.unavailable {
+    cursor: not-allowed;
+    opacity: 0.72;
+    filter: grayscale(0.3);
+}
+.therapist-card.unavailable:hover {
+    transform: none;
+    box-shadow: var(--shadow-soft);
+    border-color: var(--border-soft);
+}
 .therapist-card.hidden {
     display: none;
 }
@@ -298,29 +308,21 @@ button {
     font-weight: 500;
     margin-bottom: 6px;
 }
-.therapist-rating {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-heading);
-    margin-bottom: 2px;
-}
-.therapist-rating i {
-    color: #F5A623;
-    font-size: 13px;
-}
-.therapist-rating span {
-    color: var(--text-muted);
-    font-weight: 400;
-    font-size: 13px;
-}
 .therapist-specialties {
     font-size: 12px;
     color: var(--text-muted);
     margin: 4px 0 14px;
     padding: 0 8px;
+}
+.therapist-availability {
+    min-height: 18px;
+    margin: 0 0 10px;
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 700;
+}
+.therapist-card.unavailable .therapist-availability {
+    color: var(--red);
 }
 
 .select-btn {
@@ -345,6 +347,11 @@ button {
 }
 .select-btn.selected:hover {
     background: var(--pink-700);
+}
+.select-btn:disabled {
+    background: var(--red-bg);
+    color: var(--red);
+    cursor: not-allowed;
 }
 
 .footer {

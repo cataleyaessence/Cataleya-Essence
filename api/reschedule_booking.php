@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/mail.php';
+require_once __DIR__ . '/../config/admin_activity.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -35,6 +36,16 @@ $bookingId = filter_var($input['booking_id'] ?? null, FILTER_VALIDATE_INT, ['opt
 $serviceId = filter_var($input['service_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $bookingDate = trim((string) ($input['booking_date'] ?? ''));
 $bookingTimeInput = trim((string) ($input['booking_time'] ?? ''));
+$rescheduleReasonKey = trim((string) ($input['reschedule_reason'] ?? ''));
+$reasonDetails = trim((string) ($input['reason_details'] ?? ''));
+
+$rescheduleReasons = [
+    'schedule_conflict' => 'Schedule conflict',
+    'work_school' => 'Work or school commitment',
+    'personal_family' => 'Personal or family matter',
+    'not_feeling_well' => 'Not feeling well',
+    'transportation' => 'Transportation issue',
+];
 
 if (!$bookingId || !$serviceId || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $bookingDate)) {
     rescheduleResponse(['success' => false, 'error' => 'Choose a valid service and booking date.'], 422);
@@ -47,6 +58,19 @@ if (!$dateObject || $dateObject->format('Y-m-d') !== $bookingDate) {
 
 if (!preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $bookingTimeInput)) {
     rescheduleResponse(['success' => false, 'error' => 'Choose an available time slot.'], 422);
+}
+
+if (!isset($rescheduleReasons[$rescheduleReasonKey])) {
+    rescheduleResponse(['success' => false, 'error' => 'Choose a reason for rescheduling.'], 422);
+}
+
+if (mb_strlen($reasonDetails) > 500) {
+    rescheduleResponse(['success' => false, 'error' => 'Additional details must be 500 characters or fewer.'], 422);
+}
+
+$rescheduleReason = $rescheduleReasons[$rescheduleReasonKey];
+if ($reasonDetails !== '') {
+    $rescheduleReason .= ' — ' . $reasonDetails;
 }
 
 $bookingTime = substr($bookingTimeInput, 0, 5) . ':00';
@@ -172,12 +196,24 @@ try {
 
     $updateBooking = $pdo->prepare(
         "UPDATE bookings
-         SET service_id = ?, booking_date = ?, booking_time = ?, total_amount = ?, status = 'rescheduled', auto_cancelled = 0, updated_at = NOW()
+         SET service_id = ?, booking_date = ?, booking_time = ?, total_amount = ?, reschedule_reason = ?, status = 'rescheduled', auto_cancelled = 0, updated_at = NOW()
          WHERE id = ? AND user_id = ?"
     );
-    $updateBooking->execute([$serviceId, $bookingDate, $bookingTime, $updatedTotalAmount, $bookingId, $userId]);
+    $updateBooking->execute([$serviceId, $bookingDate, $bookingTime, $updatedTotalAmount, $rescheduleReason, $bookingId, $userId]);
 
     $pdo->commit();
+
+    $activityDetails = sprintf(
+        'Rescheduled booking CAT-%06d to %s at %s. Reason: %s',
+        $bookingId,
+        date('M j, Y', strtotime($bookingDate)),
+        date('g:i A', strtotime($bookingTime)),
+        $rescheduleReason
+    );
+    if (mb_strlen($activityDetails) > 255) {
+        $activityDetails = mb_strimwidth($activityDetails, 0, 252, '...');
+    }
+    logCustomerActivity($pdo, $userId, 'booking_rescheduled', 'booking', $bookingId, $activityDetails);
 
     // Send the updated appointment details only after the reschedule has been
     // committed. A mail delivery issue must not undo a valid reschedule.
@@ -215,6 +251,7 @@ try {
             'booking_time' => $bookingTime,
             'total_amount' => $updatedTotalAmount,
             'status' => 'rescheduled',
+            'reschedule_reason' => $rescheduleReason,
         ],
     ]);
 } catch (Throwable $exception) {
